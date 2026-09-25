@@ -1,0 +1,20 @@
+# Flutter / Dart
+.dart_tool/
+.packages
+build/
+coverage/
+*.iml
+.idea/
+.flutter-plugins
+.flutter-plugins-dependencies
+
+# Platform folders are generated with `flutter create .` (see README)
+# Keep them out of source control if you prefer regenerating them.
+
+# Backend
+backend/.env
+backend/functions/**/.env
+
+# Misc
+.DS_Store
+*.log

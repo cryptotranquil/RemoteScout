@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>RemoteScout — LUNA Neomorphic Mockups</title>
+<style>
+  :root {
+    --luna-100: #A7EBF2;
+    --luna-300: #54ACBF;
+    --luna-500: #26658C;
+    --luna-700: #023859;
+    --luna-900: #011C40;
+    --base: #EAF7F9;
+    --hi: #FFFFFF;
+    --sh: #B9D9DE;
+    --muted: #4E748C;
+    --track: #D7ECF0;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Inter', 'Poppins', -apple-system, 'Segoe UI', Roboto, sans-serif;
+    background: linear-gradient(160deg, #EAF7F9 0%, #D7ECF0 100%);
+    color: var(--luna-900);
+    padding: 40px 24px 64px;
+  }
+  h1 {
+    font-family: 'Poppins', 'Inter', sans-serif;
+    font-size: 30px; font-weight: 700; text-align: center;
+  }
+  .sub { text-align: center; color: var(--muted); margin: 10px 0 36px; font-size: 14px; }
+  .row {
+    display: flex; flex-wrap: wrap; gap: 48px; justify-content: center;
+    align-items: flex-start;
+  }
+  .frame-wrap { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+  .caption { font-size: 12.5px; font-weight: 600; color: var(--luna-500); letter-spacing: .4px; }
+  .phone {
+    width: 300px; height: 620px; border-radius: 42px; padding: 18px 16px;
+    background: var(--base);
+    box-shadow: 14px 14px 32px var(--sh), -14px -14px 32px var(--hi);
+    display: flex; flex-direction: column; overflow: hidden; position: relative;
+  }
+  .phone.dark {
+    --base: #011C40; --hi: #0B4A73; --sh: #000814;
+    --muted: #86B8C8; --track: #022A4D; --ink: #A7EBF2;
+    background: #011C40; color: var(--ink);
+    box-shadow: 14px 14px 32px #000814, -14px -14px 32px #0B4A73;
+  }
+  .phone { color: var(--luna-900); }
+  .phone.dark { color: #A7EBF2; }
+  .card {
+    background: var(--base); border-radius: 22px; padding: 16px;
+    box-shadow: 6px 6px 14px var(--sh), -6px -6px 14px var(--hi);
+  }
+  .inset {
+    background: var(--base); border-radius: 16px;
+    box-shadow: inset 4px 4px 9px var(--sh), inset -4px -4px 9px var(--hi);
+  }
+  .pill {
+    display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 26px; padding: 11px 18px; font-size: 12.5px; font-weight: 600;
+    background: var(--base);
+    box-shadow: 5px 5px 10px var(--sh), -5px -5px 10px var(--hi);
+  }
+  .pill.pressed {
+    box-shadow: inset 3px 3px 7px var(--sh), inset -3px -3px 7px var(--hi);
+    color: var(--luna-500); font-weight: 700;
+  }
+  .pill.filled {
+    background: #26658C; color: #A7EBF2;
+    box-shadow: 5px 5px 10px #B9D9DE, -5px -5px 10px #ffffff;
+  }
+  .dark .pill.filled { background: #023859; color: #A7EBF2;
+    box-shadow: 5px 5px 10px #000814, -5px -5px 10px #0B4A73; }
+  .title { font-family: 'Poppins', sans-serif; font-weight: 600; font-size: 16px; }
+  .h2 { font-family: 'Poppins', sans-serif; font-weight: 600; font-size: 19px; margin-top: 4px; }
+  .meta { font-size: 11.5px; color: var(--muted); margin-top: 4px; }
+  .label { font-size: 10px; color: var(--muted); letter-spacing: 1.1px; font-weight: 700; margin-bottom: 8px; }
+  .ring {
+    width: 52px; height: 52px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--base);
+    box-shadow: 4px 4px 9px var(--sh), -4px -4px 9px var(--hi),
+                0 0 12px rgba(38, 101, 140, 0.35);
+  }
+  .ring i {
+    width: 44px; height: 44px; border-radius: 50%;
+    background: conic-gradient(var(--luna-500) calc(var(--p) * 1%), var(--track) 0);
+    display: flex; align-items: center; justify-content: center;
+    font-style: normal; font-size: 11.5px; font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .ring i::before {
+    content: ''; position: absolute; width: 36px; height: 36px;
+    border-radius: 50%; background: var(--base);
+  }
+  .ring i span { position: relative; }
+  .badge {
+    display: inline-flex; gap: 5px; align-items: center;
+    padding: 6px 10px; border-radius: 13px; font-size: 10.5px; font-weight: 600;
+    box-shadow: inset 2px 2px 5px var(--sh), inset -2px -2px 5px var(--hi);
+  }
+  .source { font-size: 10.5px; color: var(--muted); font-weight: 500; }
+  .btns { display: flex; gap: 10px; margin-top: 12px; }
+  .btns .pill { flex: 1; padding: 10px 8px; font-size: 12px; }
+  .nav {
+    margin-top: auto; height: 64px; border-radius: 28px;
+    display: flex; align-items: center; justify-content: space-around;
+    background: var(--base);
+    box-shadow: 6px 6px 14px var(--sh), -6px -6px 14px var(--hi);
+  }
+  .nav .item { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .nav .ico {
+    width: 36px; height: 36px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; font-size: 15px;
+  }
+  .nav .item.on .ico {
+    box-shadow: inset 3px 3px 6px var(--sh), inset -3px -3px 6px var(--hi);
+    color: var(--luna-500);
+  }
+  .dark .nav .item.on .ico { color: var(--luna-100); }
+  .nav small { font-size: 8.5px; color: var(--muted); font-weight: 500; }
+  .nav .item.on small { color: inherit; font-weight: 700; }
+  .scroll { flex: 1; overflow: hidden; display: flex; flex-direction: column; gap: 14px; padding-bottom: 14px; }
+  .dots { display: flex; gap: 6px; padding: 5px 9px; width: fit-content;
+    box-shadow: inset 2px 2px 5px var(--sh), inset -2px -2px 5px var(--hi);
+    border-radius: 8px; }
+  .dots b { width: 8px; height: 8px; border-radius: 50%; background: var(--track); }
+  .dots b.on { background: var(--luna-500); width: 10px; height: 10px; }
+  .chip {
+    display: inline-flex; padding: 8px 12px; border-radius: 16px;
+    font-size: 10.5px; font-weight: 600; margin: 0 6px 6px 0; color: var(--luna-500);
+    box-shadow: inset 2px 2px 5px var(--sh), inset -2px -2px 5px var(--hi);
+  }
+  .chip.ghost { color: var(--muted); font-weight: 500;
+    box-shadow: 3px 3px 6px var(--sh), -3px -3px 6px var(--hi); }
+  .check { font-size: 12px; line-height: 1.55; margin-bottom: 6px; }
+  .row-flex { display: flex; align-items: center; gap: 14px; }
+  .toggle { width: 54px; height: 30px; border-radius: 18px; padding: 3px;
+    display: flex; justify-content: flex-end;
+    box-shadow: inset 3px 3px 6px var(--sh), inset -3px -3px 6px var(--hi); }
+  .toggle b { width: 24px; height: 24px; border-radius: 50%; background: var(--luna-500);
+    box-shadow: 2px 2px 5px rgba(0,0,0,.18); }
+  .toggle.off { justify-content: flex-start; }
+  .toggle.off b { background: var(--base); box-shadow: 2px 2px 5px var(--sh), -2px -2px 5px var(--hi); }
+  .divider-note { text-align: center; font-size: 12px; color: var(--muted); max-width: 760px; margin: 44px auto 0; line-height: 1.6; }
+</style>
+</head>
+<body>
+  <h1>RemoteScout</h1>
+  <p class="sub">LUNA neomorphic UI · soft raised cards &amp; buttons that press to inset · monochrome blue, weight does the signaling</p>
+
+  <div class="row">
+    <!-- ============================= Discover (light) -->
+    <div class="frame-wrap">
+      <div class="phone">
+        <div class="h2">Today's best opportunities</div>
+        <div class="meta">Fri, 25 Sep</div>
+        <div class="scroll" style="margin-top:16px">
+          <div class="card">
+            <div class="row-flex">
+              <div style="flex:1">
+                <div class="title">Junior Data Analyst</div>
+                <div class="meta">Example Labs</div>
+              </div>
+              <div class="ring"><i style="--p:88"><span>88%</span></i></div>
+            </div>
+            <div style="margin-top:12px; display:flex; gap:10px; align-items:center">
+              <span class="badge">🌐 Worldwide</span>
+              <span class="meta">2d ago · Full-time</span>
+            </div>
+            <div class="meta" style="margin-top:6px">via Remotive · USD 28k–38k</div>
+            <div class="btns"><span class="pill">Save</span><span class="pill pressed">Reject</span></div>
+          </div>
+          <div class="card">
+            <div class="row-flex">
+              <div style="flex:1">
+                <div class="title">Data Analyst Intern</div>
+                <div class="meta">BrightMetrics</div>
+              </div>
+              <div class="ring"><i style="--p:76"><span>76%</span></i></div>
+            </div>
+            <div style="margin-top:12px; display:flex; gap:10px; align-items:center">
+              <span class="badge">🌐 Worldwide</span>
+              <span class="meta">5h ago · Internship</span>
+            </div>
+            <div class="meta" style="margin-top:6px">via Remotive</div>
+            <div class="btns"><span class="pill pressed">Save</span><span class="pill">Reject</span></div>
+          </div>
+          <div class="card" style="text-align:center; color:var(--muted); font-size:12px; padding:22px 16px">
+            “No more high-match jobs today.”
+          </div>
+        </div>
+        <div class="nav">
+          <div class="item on"><div class="ico">🧭</div><small>Discover</small></div>
+          <div class="item"><div class="ico">🔖</div><small>Saved</small></div>
+          <div class="item"><div class="ico">💼</div><small>Apps</small></div>
+          <div class="item"><div class="ico">👤</div><small>Profile</small></div>
+        </div>
+      </div>
+      <div class="caption">DISCOVER · LIGHT</div>
+    </div>
+
+    <!-- ============================= Job Details (light) -->
+    <div class="frame-wrap">
+      <div class="phone">
+        <div class="row-flex"><span class="pill" style="padding:8px 12px">←</span>
+          <span class="source" style="margin-left:auto">via Remotive</span></div>
+        <div class="scroll" style="margin-top:12px">
+          <div class="card">
+            <div class="row-flex">
+              <div style="flex:1">
+                <div class="h2">Junior Data Analyst</div>
+                <div class="meta">Example Labs</div>
+              </div>
+              <div class="ring" style="width:60px;height:60px"><i style="--p:88;width:50px;height:50px"><span>88%</span></i></div>
+            </div>
+            <div style="margin-top:12px; display:flex; flex-wrap:wrap; gap:8px">
+              <span class="badge">🌐 Worldwide</span>
+              <span class="badge">Full-time</span>
+              <span class="badge">USD 28k–38k</span>
+            </div>
+          </div>
+          <div class="card">
+            <div class="label">WHY THIS MATCHED</div>
+            <div class="check">✓ Matches SQL, Excel, Tableau, Statistics</div>
+            <div class="check">✓ Junior-friendly</div>
+            <div class="check">✓ Worldwide eligible</div>
+            <div class="check">✓ Posted 2 days ago</div>
+            <div class="meta" style="margin-top:8px">skills 40 · title 25 · location 20 · exp 10 · fresh 5</div>
+          </div>
+          <div class="card">
+            <div class="label">REQUIRED SKILLS</div>
+            <span class="chip">✓ SQL</span><span class="chip">✓ Excel</span><span class="chip">✓ Tableau</span>
+            <div class="meta" style="margin:6px 0">Not on your profile:</div>
+            <span class="chip ghost">Looker</span><span class="chip ghost">Google Sheets</span>
+          </div>
+          <div class="pill filled" style="width:100%; border-radius:26px">View Original Listing ↗</div>
+          <div class="btns">
+            <span class="pill" style="flex:1.6">Plan to apply</span>
+            <span class="pill">🔖</span><span class="pill">✕</span><span class="pill">⚑</span>
+          </div>
+        </div>
+      </div>
+      <div class="caption">JOB DETAILS · WHY IT MATCHED</div>
+    </div>
+
+    <!-- ============================= Applications (light) -->
+    <div class="frame-wrap">
+      <div class="phone">
+        <div class="row-flex">
+          <div style="flex:1">
+            <div class="h2">Applications</div>
+            <div class="meta">New → Saved → Plan → Applied → …</div>
+          </div>
+          <span class="pill" style="padding:9px 13px">＋</span>
+        </div>
+        <div style="margin-top:14px; display:flex; gap:8px">
+          <span class="pill pressed" style="padding:8px 13px">Pipeline</span>
+          <span class="pill" style="padding:8px 13px">Follow-ups</span>
+        </div>
+        <div class="scroll" style="margin-top:12px">
+          <div style="display:flex; gap:8px; overflow:hidden">
+            <span class="pill pressed" style="padding:8px 12px">All</span>
+            <span class="pill" style="padding:8px 12px">Saved</span>
+            <span class="pill" style="padding:8px 12px">Applied</span>
+            <span class="pill" style="padding:8px 12px">Interview</span>
+          </div>
+          <div class="card">
+            <div class="row-flex">
+              <div style="flex:1">
+                <div class="title">Junior Data Analyst</div>
+                <div class="meta">Example Labs</div>
+              </div>
+              <span class="badge">Applied</span>
+            </div>
+            <div class="meta" style="margin-top:10px">Applied 24 Sep · Follow up 1 Oct</div>
+          </div>
+          <div class="card">
+            <div class="row-flex">
+              <div style="flex:1">
+                <div class="title">Reporting Analyst</div>
+                <div class="meta">HealthData Co</div>
+              </div>
+              <span class="badge">Interview</span>
+            </div>
+            <div class="meta" style="margin-top:10px; color:var(--luna-500); font-weight:700">
+              Follow-up overdue 22 Sep
+            </div>
+          </div>
+          <div class="card">
+            <div class="row-flex">
+              <div style="flex:1">
+                <div class="title">Data Analyst Intern</div>
+                <div class="meta">BrightMetrics</div>
+              </div>
+              <span class="badge">Plan to apply</span>
+            </div>
+            <div class="meta" style="margin-top:10px">CV: cv-data-v2.pdf</div>
+          </div>
+        </div>
+        <div class="nav">
+          <div class="item"><div class="ico">🧭</div><small>Discover</small></div>
+          <div class="item"><div class="ico">🔖</div><small>Saved</small></div>
+          <div class="item on"><div class="ico">💼</div><small>Apps</small></div>
+          <div class="item"><div class="ico">👤</div><small>Profile</small></div>
+        </div>
+      </div>
+      <div class="caption">APPLICATIONS · TRACKER</div>
+    </div>
+
+    <!-- ============================= Onboarding + dark Discover -->
+    <div class="frame-wrap">
+      <div class="phone">
+        <div class="dots"><b class="on"></b><b class="on"></b><b class="on"></b><b></b><b></b><b></b></div>
+        <div class="h2" style="margin-top:18px">What is your experience level?</div>
+        <div class="meta">We favour junior and entry-level friendly listings.</div>
+        <div class="scroll" style="margin-top:16px">
+          <div class="card inset" style="padding:20px 16px">
+            <div class="label">EXPERIENCE LEVEL</div>
+            <div>
+              <span class="chip">Junior</span><span class="chip ghost">Entry-level</span><span class="chip ghost">Associate</span>
+            </div>
+            <div class="label" style="margin-top:18px">LOCATION ELIGIBILITY</div>
+            <span class="badge">🌐 Worldwide — confirmed</span>
+            <div class="label" style="margin-top:18px">MINIMUM SALARY (OPTIONAL)</div>
+            <div class="inset" style="padding:13px 14px; font-size:12.5px; color:var(--muted)">e.g. 24000</div>
+          </div>
+        </div>
+        <div class="pill filled" style="width:100%; text-align:center">Next</div>
+      </div>
+      <div class="caption">ONBOARDING · SOFT-INSET STEPS</div>
+    </div>
+
+    <div class="frame-wrap">
+      <div class="phone dark">
+        <div class="h2">Today's best opportunities</div>
+        <div class="meta">Fri, 25 Sep</div>
+        <div class="scroll" style="margin-top:16px">
+          <div class="card">
+            <div class="row-flex">
+              <div style="flex:1">
+                <div class="title">Junior Data Analyst</div>
+                <div class="meta">Example Labs</div>
+              </div>
+              <div class="ring"><i style="--p:88"><span>88%</span></i></div>
+            </div>
+            <div style="margin-top:12px; display:flex; gap:10px; align-items:center">
+              <span class="badge">🌐 Worldwide</span>
+              <span class="meta">2d ago · Full-time</span>
+            </div>
+            <div class="meta" style="margin-top:6px">via Remotive · USD 28k–38k</div>
+            <div class="btns"><span class="pill">Save</span><span class="pill">Reject</span></div>
+          </div>
+          <div class="card">
+            <div class="label">DIGEST PREFERENCES</div>
+            <div class="row-flex" style="justify-content:space-between; margin-bottom:12px">
+              <span style="font-size:12.5px">Weekend digests</span>
+              <div class="toggle off"><b></b></div>
+            </div>
+            <div class="row-flex" style="justify-content:space-between">
+              <span style="font-size:12.5px">Digest time · 8:00 AM</span>
+              <div class="toggle"><b></b></div>
+            </div>
+          </div>
+        </div>
+        <div class="nav">
+          <div class="item on"><div class="ico">🧭</div><small>Discover</small></div>
+          <div class="item"><div class="ico">🔖</div><small>Saved</small></div>
+          <div class="item"><div class="ico">💼</div><small>Apps</small></div>
+          <div class="item"><div class="ico">👤</div><small>Profile</small></div>
+        </div>
+      </div>
+      <div class="caption">DISCOVER · DARK (LUNA-900 BASE)</div>
+    </div>
+  </div>
+
+  <p class="divider-note">
+    Match bands: low → luna-300 · mid → luna-500 · ≥80% → luna-500 with a subtle glow.
+    Buttons press to an inset shadow (the Soft UI signature) — never a color change.
+    Every card carries its source badge and links back to the original listing.
+  </p>
+</body>
+</html>
