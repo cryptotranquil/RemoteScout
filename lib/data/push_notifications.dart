@@ -81,7 +81,7 @@ class PushNotificationService {
   }
 
   static Future<String> currentTimeZone() async =>
-      FlutterTimezone.getLocalTimezone();
+      (await FlutterTimezone.getLocalTimezone()).identifier;
 
   Future<bool> requestPermissionAndRegister() async {
     final settings = await _messaging.requestPermission(
