@@ -69,6 +69,23 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+      - name: Build signed APK
+        env:
+          APPLICATION_ID: com.praisekajawa.remotescout
+          RELEASE_STORE_FILE: ${{ runner.temp }}/remotescout-upload-key.jks
+          RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: remotescout
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: flutter build apk --release
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: remotescout-android-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
+          retention-days: 14
+
       - name: Remove temporary keystore
         if: always()
         run: rm -f "$RUNNER_TEMP/remotescout-upload-key.jks"

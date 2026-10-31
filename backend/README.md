@@ -141,8 +141,10 @@ Add these repository Actions secrets under **Settings → Secrets and variables
 - `RELEASE_KEY_PASSWORD` — the key password.
 
 The workflow uses the `remotescout` alias and this project's default package
-ID. It uploads `remotescout-android-release` as a downloadable artifact. Never
-put the keystore or passwords in the repository or send them in chat.
+ID. It uploads `remotescout-android-release` (AAB for Google Play) and
+`remotescout-android-apk` (APK for direct phone installation) as separate
+downloadable artifacts. Never put the keystore or passwords in the repository
+or send them in chat.
 
 ## Attribution compliance
 
