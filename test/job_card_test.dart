@@ -46,10 +46,10 @@ void main() {
 
     expect(find.text('Junior Data Analyst'), findsOneWidget);
     expect(find.text('Example Labs'), findsOneWidget);
-    expect(find.text('88%'), findsOneWidget);
+    expect(find.text('88% Match • Strong Fit'), findsOneWidget);
     expect(find.text('Worldwide'), findsOneWidget);
     expect(find.text('via Remotive'), findsOneWidget);
-    expect(find.text('USD 28k–38k'), findsOneWidget);
+    expect(find.text('\$28,000 – \$38,000 USD'), findsOneWidget);
   });
 
   testWidgets('Save and Reject buttons fire their callbacks',

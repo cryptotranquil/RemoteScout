@@ -10,15 +10,19 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import {
   crossSourceKey,
+  type NormalizedJob,
   normalizeRemoteOk,
   normalizeRemotive,
-  type NormalizedJob,
 } from "../_shared/normalizers.ts";
+import { handlePostRequest, jsonResponse } from "../_shared/http.ts";
 
 const REMOTIVE_URL = "https://remotive.com/api/remote-jobs?limit=100";
 const REMOTEOK_URL = "https://remoteok.com/api";
 
 Deno.serve(async (req) => {
+  const response = handlePostRequest(req);
+  if (response) return response;
+
   try {
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -34,9 +38,23 @@ Deno.serve(async (req) => {
       const res = await fetch(REMOTIVE_URL, {
         headers: { "User-Agent": "RemoteScout/1.0 (personal job tracker)" },
       });
-      const data = await res.json();
-      for (const raw of data.jobs ?? []) {
-        candidates.push(normalizeRemotive(raw, collectedAt));
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status} ${res.statusText}`);
+      }
+      const data: unknown = await res.json();
+      if (
+        typeof data !== "object" || data === null || !("jobs" in data) ||
+        !Array.isArray(data.jobs)
+      ) {
+        throw new Error("Invalid response: expected a jobs array");
+      }
+      for (const raw of data.jobs) {
+        candidates.push(
+          normalizeRemotive(
+            raw as Parameters<typeof normalizeRemotive>[0],
+            collectedAt,
+          ),
+        );
       }
     } catch (e) {
       errors.push(`remotive: ${e}`);
@@ -46,9 +64,15 @@ Deno.serve(async (req) => {
       const res = await fetch(REMOTEOK_URL, {
         headers: { "User-Agent": "RemoteScout/1.0 (personal job tracker)" },
       });
-      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status} ${res.statusText}`);
+      }
+      const data: unknown = await res.json();
+      if (!Array.isArray(data)) {
+        throw new Error("Invalid response: expected an array");
+      }
       // First element is Remote OK's legal notice, not a job.
-      for (const raw of Array.isArray(data) ? data.slice(1) : []) {
+      for (const raw of data.slice(1)) {
         if (!raw.id || !(raw.position ?? raw.title)) continue;
         candidates.push(normalizeRemoteOk(raw, collectedAt));
       }
@@ -66,7 +90,9 @@ Deno.serve(async (req) => {
     const ingestSeen = new Set<string>();
     const crossSeen = new Set(
       (existing ?? []).map((j) =>
-        crossSourceKey(j as { company: string; title: string; apply_url: string })
+        crossSourceKey(
+          j as { company: string; title: string; apply_url: string },
+        )
       ),
     );
 
@@ -110,19 +136,13 @@ Deno.serve(async (req) => {
       inserted = upserted?.length ?? 0;
     }
 
-    return new Response(
-      JSON.stringify({
-        fetched: candidates.length,
-        inserted,
-        duplicatesDiscarded: candidates.length - fresh.length,
-        errors,
-      }),
-      { headers: { "Content-Type": "application/json" } },
-    );
-  } catch (e) {
-    return new Response(JSON.stringify({ error: String(e) }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
+    return jsonResponse({
+      fetched: candidates.length,
+      inserted,
+      duplicatesDiscarded: candidates.length - fresh.length,
+      errors,
     });
+  } catch (e) {
+    return jsonResponse({ error: String(e) }, 500);
   }
 });

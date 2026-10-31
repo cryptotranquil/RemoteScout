@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../core/theme/neumorphic.dart';
+import '../../core/ui/scout_ui.dart';
 import '../../core/utils/formatters.dart';
 import '../../data/providers.dart';
 import '../../models/models.dart';
-import '../discover/job_card.dart';
+
 
 /// Application detail / manual-add form (03_App_Flow.md §4.5, §6).
 ///
@@ -153,14 +153,14 @@ class _ApplicationFormScreenState extends ConsumerState<ApplicationFormScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final palette = NeuPalette.of(context);
+    final palette = ScoutColors.of(context);
     if (!_loaded) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
     if (!_isManualCreate && _existing == null) {
       return Scaffold(
         appBar: AppBar(),
-        body: const EmptyState(message: 'Application not found.'),
+        body: const ScoutEmptyState(message: 'Application not found.'),
       );
     }
 
@@ -177,7 +177,7 @@ class _ApplicationFormScreenState extends ConsumerState<ApplicationFormScreen> {
                 children: [
                   Row(
                     children: [
-                      NeuIconButton(
+                      ScoutIconButton(
                         icon: Icons.arrow_back,
                         onPressed: () => context.pop(),
                         size: 46,
@@ -196,7 +196,7 @@ class _ApplicationFormScreenState extends ConsumerState<ApplicationFormScreen> {
                   ),
                   const SizedBox(height: 18),
                   if (!_isManualCreate && _job != null && !manualJob) ...[
-                    NeuCard(
+                    ScoutCard(
                       onTap: () => context.push('/job/${_job!.id}'),
                       child: Row(
                         children: [
@@ -219,13 +219,13 @@ class _ApplicationFormScreenState extends ConsumerState<ApplicationFormScreen> {
                     ),
                     const SizedBox(height: 18),
                   ],
-                  NeuCard(
+                  ScoutCard(
                     inset: true,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const NeuSectionLabel('Status'),
-                        NeuStepper(
+                        const ScoutSectionLabel('Status'),
+                        ScoutStepper(
                           steps:
                               ApplicationStatus.values.map((s) => s.label).toList(),
                           currentIndex: ApplicationStatus.values.indexOf(_status),
@@ -233,19 +233,19 @@ class _ApplicationFormScreenState extends ConsumerState<ApplicationFormScreen> {
                         ),
                         const SizedBox(height: 18),
                         if (_isManualCreate) ...[
-                          const NeuSectionLabel('Job'),
-                          NeuInput(controller: _title, hint: 'Job title'),
+                          const ScoutSectionLabel('Job'),
+                          ScoutInput(controller: _title, hint: 'Job title'),
                           const SizedBox(height: 12),
-                          NeuInput(controller: _company, hint: 'Company'),
+                          ScoutInput(controller: _company, hint: 'Company'),
                           const SizedBox(height: 12),
-                          NeuInput(
+                          ScoutInput(
                             controller: _applyUrl,
                             hint: 'Apply / listing URL',
                             keyboardType: TextInputType.url,
                           ),
                           const SizedBox(height: 18),
                         ],
-                        const NeuSectionLabel('Dates'),
+                        const ScoutSectionLabel('Dates'),
                         Row(
                           children: [
                             Expanded(
@@ -271,20 +271,20 @@ class _ApplicationFormScreenState extends ConsumerState<ApplicationFormScreen> {
                           ],
                         ),
                         const SizedBox(height: 18),
-                        const NeuSectionLabel('CV version used'),
-                        NeuInput(
+                        const ScoutSectionLabel('CV version used'),
+                        ScoutInput(
                             controller: _cvVersion, hint: 'e.g. cv-data-v2.pdf'),
                         const SizedBox(height: 18),
-                        const NeuSectionLabel('Cover letter'),
-                        NeuInput(
+                        const ScoutSectionLabel('Cover letter'),
+                        ScoutInput(
                           controller: _coverLetter,
                           hint: 'Draft or paste your cover letter…',
                           maxLines: 6,
                           minLines: 3,
                         ),
                         const SizedBox(height: 18),
-                        const NeuSectionLabel('Notes & interview details'),
-                        NeuInput(
+                        const ScoutSectionLabel('Notes & interview details'),
+                        ScoutInput(
                           controller: _notes,
                           hint: 'Interview dates, contacts, prep notes…',
                           maxLines: 6,
@@ -295,7 +295,7 @@ class _ApplicationFormScreenState extends ConsumerState<ApplicationFormScreen> {
                   ),
                   if (!_isManualCreate && manualJob) ...[
                     const SizedBox(height: 16),
-                    NeuButton(
+                    ScoutButton(
                       onPressed: () async {
                         await ref
                             .read(storeProvider)
@@ -303,7 +303,7 @@ class _ApplicationFormScreenState extends ConsumerState<ApplicationFormScreen> {
                         if (context.mounted) context.pop();
                       },
                       child: Text('Delete manual entry',
-                          style: TextStyle(color: palette.textSecondary)),
+                          style: TextStyle(color: palette.muted)),
                     ),
                   ],
                 ],
@@ -312,16 +312,16 @@ class _ApplicationFormScreenState extends ConsumerState<ApplicationFormScreen> {
             Container(
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
               decoration: BoxDecoration(
-                color: palette.base,
+                color: palette.surface,
                 boxShadow: [
                   BoxShadow(
-                    color: palette.shadow,
+                    color: palette.outlineVariant,
                     blurRadius: 14,
                     offset: const Offset(0, -5),
                   ),
                 ],
               ),
-              child: NeuButton(
+              child: ScoutButton(
                 key: const ValueKey('save-application'),
                 filled: true,
                 onPressed: _save,
@@ -349,16 +349,15 @@ class _DateField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final palette = NeuPalette.of(context);
+    final palette = ScoutColors.of(context);
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         constraints: const BoxConstraints(minHeight: 48),
         decoration: BoxDecoration(
-          color: palette.base,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: palette.inset(blur: 8, distance: 3),
+          color: palette.surfaceLow,
+          borderRadius: BorderRadius.circular(ScoutRadius.md),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -369,7 +368,7 @@ class _DateField extends StatelessWidget {
                 style: Theme.of(context)
                     .textTheme
                     .titleSmall!
-                    .copyWith(color: palette.accent)),
+                    .copyWith(color: palette.primary)),
           ],
         ),
       ),

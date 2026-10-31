@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../core/theme/neumorphic.dart';
+import '../../core/ui/scout_ui.dart';
 import '../../core/utils/formatters.dart';
 import '../../data/app_store.dart';
 import '../../data/providers.dart';
 import '../../models/models.dart';
 
-/// Raised soft job card — Discover and Saved lists (04_UIUX_Design.md §4.2).
+/// Scannable job row used by Discover and Saved.
+///
+/// Reading order matches the design: who/where at the top, the role in the
+/// largest type, then match + eligibility, money, and finally the reason the
+/// matcher surfaced it.
 class JobCard extends StatelessWidget {
   const JobCard({
     super.key,
@@ -23,7 +27,7 @@ class JobCard extends StatelessWidget {
   final VoidCallback? onReject;
   final VoidCallback? onPlanToApply;
 
-  /// Long-press action — "report expired" is available on every job card.
+  /// Long-press action — "report expired" is available on every job row.
   final VoidCallback? onReportExpired;
 
   Job get job => model.job;
@@ -31,163 +35,124 @@ class JobCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final palette = NeuPalette.of(context);
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 18),
-      child: NeuCard(
+    final colors = ScoutColors.of(context);
+    final text = Theme.of(context).textTheme;
+    final saved = match.isSaved;
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onLongPress: onReportExpired,
+      child: ScoutCard(
         onTap: () => context.push('/job/${job.id}'),
-        onLongPress:
-            onReportExpired == null ? null : () => onReportExpired!(),
+        padding: const EdgeInsets.all(ScoutSpace.md),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        job.title,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Flexible(
-                            child: Text(
-                              job.company,
-                              overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.bodyMedium!.copyWith(
-                                    color: palette.textSecondary,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          ScoreRing(score: match.matchScore, size: 44),
-                        ],
-                      ),
-                    ],
+                ScoutMonogram(label: job.company, size: 24),
+                const SizedBox(width: ScoutSpace.xs),
+                Flexible(
+                  child: Text(
+                    job.company,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: text.titleSmall,
                   ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Text('•', style: text.labelSmall),
+                ),
+                Flexible(child: ScoutSourceBadge(source: job.source)),
+                const Spacer(),
+                Text(
+                  formatShortAgo(job.publishedAt),
+                  style: text.labelSmall,
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-            Row(
+            const SizedBox(height: ScoutSpace.sm),
+            Text(
+              job.title,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: text.titleLarge,
+            ),
+            const SizedBox(height: ScoutSpace.xs + 2),
+            ScoutBadgeWrap(
               children: [
-                LocationBadge(
+                ScoutBadge(
+                  label:
+                      '${match.matchScore}% Match • ${formatFitLabel(match.matchScore)}',
+                  tone: ScoutBadgeTone.solid,
+                ),
+                ScoutLocationBadge(
                   scope: job.locationScope.wire,
                   detail: job.locationText,
                 ),
-                const SizedBox(width: 10),
+              ],
+            ),
+            const SizedBox(height: ScoutSpace.sm),
+            Row(
+              children: [
                 Expanded(
                   child: Text(
-                    '${formatPostedAgo(job.publishedAt)} · ${job.employmentLabel}',
+                    formatSalaryFull(job),
+                    maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.bodySmall,
+                    style: text.titleSmall!.copyWith(color: colors.primary),
                   ),
                 ),
+                const SizedBox(width: ScoutSpace.sm),
+                Text(job.employmentLabel, style: text.labelSmall),
               ],
             ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                SourceBadge(source: job.source),
-                if (job.hasSalary) ...[
-                  Text('  ·  ', style: Theme.of(context).textTheme.bodySmall),
-                  Text(
-                    job.salaryLabel,
-                    style: Theme.of(context).textTheme.labelSmall!.copyWith(
-                          color: palette.textPrimary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                  ),
-                ],
-              ],
-            ),
-            const SizedBox(height: 14),
-            Row(
-              children: [
-                Expanded(
-                  child: NeuButton(
-                    key: ValueKey('save-${job.id}'),
-                    onPressed: onSave,
-                    expand: true,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    child: const Text('Save'),
-                  ),
+            if (match.matchReason.isNotEmpty) ...[
+              const SizedBox(height: ScoutSpace.sm),
+              ScoutNotice(
+                icon: Icons.auto_awesome,
+                child: Text(
+                  match.matchReason,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: NeuButton(
-                    key: ValueKey('reject-${job.id}'),
-                    onPressed: onReject,
-                    expand: true,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    child: const Text('Reject'),
-                  ),
-                ),
-                if (onPlanToApply != null) ...[
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: NeuButton(
-                      onPressed: onPlanToApply,
-                      expand: true,
-                      filled: true,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      child: const Text('Plan to apply'),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Muted centered empty state (e.g. "No more high-match jobs today.").
-class EmptyState extends StatelessWidget {
-  const EmptyState({super.key, required this.message, this.icon});
-
-  final String message;
-  final IconData? icon;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = NeuPalette.of(context);
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (icon != null) ...[
-              Container(
-                width: 72,
-                height: 72,
-                decoration: BoxDecoration(
-                  color: palette.base,
-                  shape: BoxShape.circle,
-                  boxShadow: palette.inset(blur: 10, distance: 4),
-                ),
-                child: Icon(icon, size: 30, color: palette.textSecondary),
               ),
-              const SizedBox(height: 18),
             ],
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyMedium!
-                  .copyWith(color: palette.textSecondary),
+            const SizedBox(height: ScoutSpace.sm),
+            Row(
+              children: [
+                ScoutButton(
+                  key: ValueKey('save-${job.id}'),
+                  label: saved ? 'Saved' : 'Save',
+                  icon: saved ? Icons.bookmark : Icons.bookmark_outline,
+                  onPressed: saved ? null : onSave,
+                  dense: true,
+                  expand: false,
+                ),
+                const SizedBox(width: ScoutSpace.xs + 2),
+                ScoutButton(
+                  key: ValueKey('reject-${job.id}'),
+                  label: 'Pass',
+                  icon: Icons.close,
+                  variant: ScoutButtonVariant.text,
+                  onPressed: onReject,
+                  dense: true,
+                  expand: false,
+                ),
+                const SizedBox(width: ScoutSpace.sm),
+                Flexible(
+                  child: ScoutButton(
+                    key: ValueKey('open-${job.id}'),
+                    label: 'View details',
+                    trailingIcon: Icons.arrow_forward,
+                    variant: ScoutButtonVariant.primary,
+                    onPressed: () => context.push('/job/${job.id}'),
+                    dense: true,
+                    expand: true,
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -196,121 +161,7 @@ class EmptyState extends StatelessWidget {
   }
 }
 
-/// Shared screen heading ("Today's best opportunities" + date).
-class ScreenHeader extends StatelessWidget {
-  const ScreenHeader({super.key, required this.title, this.subtitle, this.trailing});
-
-  final String title;
-  final String? subtitle;
-  final Widget? trailing;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(4, 8, 4, 18),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: Theme.of(context).textTheme.headlineSmall),
-                if (subtitle != null) ...[
-                  const SizedBox(height: 4),
-                  Text(subtitle!, style: Theme.of(context).textTheme.bodySmall),
-                ],
-              ],
-            ),
-          ),
-          if (trailing != null) trailing!,
-        ],
-      ),
-    );
-  }
-}
-
-/// Small accent highlight used for matched skills.
-class SkillChip extends StatelessWidget {
-  const SkillChip({super.key, required this.label, required this.matched});
-
-  final String label;
-  final bool matched;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = NeuPalette.of(context);
-    return Container(
-      margin: const EdgeInsets.only(right: 8, bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-      decoration: BoxDecoration(
-        color: palette.base,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow:
-            matched ? palette.inset(blur: 6, distance: 2) : palette.raised(blur: 6, distance: 2),
-      ),
-      child: Text(
-        matched ? '✓ $label' : label,
-        style: Theme.of(context).textTheme.labelSmall!.copyWith(
-              color: matched ? palette.accent : palette.textSecondary,
-              fontWeight: matched ? FontWeight.w700 : FontWeight.w500,
-            ),
-      ),
-    );
-  }
-}
-
-/// Quiet "Posted on [Source]" attribution line (attribution compliance).
-class AttributionLine extends StatelessWidget {
-  const AttributionLine({super.key, required this.job});
-
-  final Job job;
-
-  String get _sourceName {
-    switch (job.source) {
-      case 'remotive':
-        return 'Remotive';
-      case 'remoteok':
-        return 'Remote OK';
-      case 'manual':
-        return 'a manual entry';
-      default:
-        return job.source;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = NeuPalette.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          job.source == 'manual'
-              ? 'Added manually by you'
-              : 'Posted on $_sourceName — always linked back to the original listing.',
-          style: Theme.of(context)
-              .textTheme
-              .bodySmall!
-              .copyWith(color: palette.textSecondary),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          'Collected ${formatShortDate(job.collectedAt)}',
-          style: Theme.of(context)
-              .textTheme
-              .labelSmall!
-              .copyWith(color: palette.textSecondary),
-        ),
-      ],
-    );
-  }
-}
-
-/// Band color helper re-export for screens.
-Color matchBandColor(int score) => scoreBandColor(score);
-
-/// Shared "report expired" confirmation (available on every job card).
+/// Shared "report expired" confirmation (available on every job row).
 Future<void> confirmReportExpired(
     BuildContext context, AppStore store, Job job) async {
   final confirmed = await showDialog<bool>(

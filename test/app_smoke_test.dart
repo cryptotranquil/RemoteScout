@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -7,9 +8,10 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:remotescout/app.dart';
 import 'package:remotescout/data/app_store.dart';
 import 'package:remotescout/data/local_store.dart';
-import 'package:remotescout/data/mock_data.dart';
 import 'package:remotescout/data/providers.dart';
+import 'package:remotescout/features/onboarding/welcome_screen.dart';
 import 'package:remotescout/models/models.dart';
+import 'fixtures/mock_data.dart';
 
 /// End-to-end smoke: real store + mock jobs + real router/theme/providers.
 ///
@@ -58,6 +60,24 @@ void main() {
     expect(find.text('Who are you scouting as?'), findsOneWidget);
   });
 
+  testWidgets('welcome content scrolls on a constrained viewport',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(234, 520));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      const MaterialApp(home: WelcomeScreen()),
+    );
+    await tester.pump();
+
+    expect(find.text('RemoteScout'), findsOneWidget);
+    expect(find.text('Get started'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    await tester.ensureVisible(find.text('Get started'));
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('onboarded users land on Discover with scored mock jobs',
       (tester) async {
     // Hive writes are real async — outside the FakeAsync test zone.
@@ -68,11 +88,56 @@ void main() {
       await tester.pump(const Duration(milliseconds: 120));
     }
 
-    expect(find.text("Today's best opportunities"), findsOneWidget);
+    expect(find.text("Today's Recommendations"), findsOneWidget);
     // High-match mock (Junior Data Analyst @ Example Labs) is recommended.
     expect(find.text('Junior Data Analyst'), findsWidgets);
     expect(find.text('Example Labs'), findsWidgets);
     // Low-match mocks are held back — this is a shortlist, not a feed.
     expect(find.text('Junior BI Analyst'), findsNothing);
+  });
+
+  testWidgets('bottom navigation reaches every tab', (tester) async {
+    await tester.pumpWidget(const ProviderScope(child: RemoteScoutApp()));
+    for (var i = 0; i < 6; i++) {
+      await tester.pump(const Duration(milliseconds: 120));
+    }
+
+    await tester.tap(find.text('Saved').last);
+    for (var i = 0; i < 4; i++) {
+      await tester.pump(const Duration(milliseconds: 120));
+    }
+    expect(find.text('Saved jobs'), findsOneWidget);
+
+    await tester.tap(find.text('Applications').last);
+    for (var i = 0; i < 4; i++) {
+      await tester.pump(const Duration(milliseconds: 120));
+    }
+    expect(find.text('Tracker'), findsOneWidget);
+
+    await tester.tap(find.text('Profile').last);
+    for (var i = 0; i < 4; i++) {
+      await tester.pump(const Duration(milliseconds: 120));
+    }
+    expect(find.text('Scout preferences'), findsOneWidget);
+  });
+
+  testWidgets('saved tab stays stable on a narrow phone width', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(360, 800));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.runAsync(() => appStore.setOnboarded());
+    await tester.pumpWidget(const ProviderScope(child: RemoteScoutApp()));
+    for (var i = 0; i < 8; i++) {
+      await tester.pump(const Duration(milliseconds: 120));
+    }
+
+    await tester.tap(find.text('Saved').last);
+    for (var i = 0; i < 6; i++) {
+      await tester.pump(const Duration(milliseconds: 120));
+    }
+
+    expect(find.text('Saved jobs'), findsOneWidget);
+    expect(find.text('Batch actions'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 }

@@ -1,0 +1,15 @@
+{
+  "tasks": {
+    "check": "deno check backend/functions/**/*.ts",
+    "test": "deno test backend/functions/_shared/*_test.ts",
+    "fmt": "deno fmt backend/functions/**/*.ts"
+  },
+  "imports": {
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2",
+    "jose": "https://esm.sh/jose@5"
+  },
+  "compilerOptions": {
+    "lib": ["deno.window", "deno.ns", "DOM", "ES2022"],
+    "strict": true
+  }
+}

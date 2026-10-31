@@ -1,0 +1,5 @@
+sb_publishable_o8laJrb_u2-UYH_vReOdnQ_9H-x-ivt
+
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InluZWNidWl1b3Bpc2RkZ25hdGpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAzNDUxMTksImV4cCI6MjEwNTkyMTExOX0.mUkzsEwP0JluT3VnqcLZO0PuSJ7Xvu--Q76t4ydYlwU
+
+https://ynecbuiuopisddgnatjn.supabase.co/rest/v1/

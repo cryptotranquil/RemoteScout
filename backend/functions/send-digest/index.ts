@@ -1,17 +1,32 @@
-// send-digest — daily digest at the user's configured time (PRD §6.5).
-//
-// Compiles top N matches ≥ the user's minimum score (capped at max-jobs-per-day,
-// weekend toggle respected), records `notifications` rows, then delivers:
-//   1. push via Firebase Cloud Messaging (HTTP v1)
-//   2. optional email via Resend
-//
-// Secrets: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, FCM_PROJECT_ID,
-//          FCM_CLIENT_EMAIL, FCM_PRIVATE_KEY, (optional) RESEND_API_KEY
+// Scheduled every five minutes. Each profile is checked against its local
+// digest time so daylight-saving changes do not require schedule changes.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { SignJWT } from "https://esm.sh/jose@5";
+import {
+  isDigestDue,
+  isWeekend,
+  localDateTime,
+} from "../_shared/digest_schedule.ts";
+import { handlePostRequest, jsonResponse } from "../_shared/http.ts";
 
 const FCM_SCOPE = "https://www.googleapis.com/auth/firebase.messaging";
+
+function firstRelated<T>(value: T | T[] | null | undefined): T | undefined {
+  if (Array.isArray(value)) return value[0];
+  return value ?? undefined;
+}
+
+function decodePrivateKey(pem: string): ArrayBuffer {
+  const encoded = pem
+    .replace(/-----BEGIN PRIVATE KEY-----/g, "")
+    .replace(/-----END PRIVATE KEY-----/g, "")
+    .replace(/\s/g, "");
+  const binary = atob(encoded);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes.buffer;
+}
 
 async function fcmAccessToken(): Promise<string | null> {
   const projectId = Deno.env.get("FCM_PROJECT_ID");
@@ -29,14 +44,14 @@ async function fcmAccessToken(): Promise<string | null> {
     .sign(
       await crypto.subtle.importKey(
         "pkcs8",
-        new TextEncoder().encode(privateKey),
+        decodePrivateKey(privateKey),
         { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
         false,
         ["sign"],
       ),
     );
 
-  const res = await fetch("https://oauth2.googleapis.com/token", {
+  const response = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
@@ -44,122 +59,298 @@ async function fcmAccessToken(): Promise<string | null> {
       assertion: jwt,
     }),
   });
-  const data = await res.json();
-  return data.access_token ?? null;
+  const data = await response.json();
+  if (!response.ok || typeof data.access_token !== "string") {
+    throw new Error(`FCM OAuth token request failed: HTTP ${response.status}`);
+  }
+  return data.access_token;
+}
+
+async function sendPush(
+  projectId: string,
+  accessToken: string,
+  deviceToken: string,
+  title: string,
+  body: string,
+  route: string,
+): Promise<{ ok: boolean; invalidToken: boolean; error?: string }> {
+  const response = await fetch(
+    `https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        message: {
+          token: deviceToken,
+          notification: { title, body },
+          data: { route },
+          android: { priority: "high" },
+        },
+      }),
+    },
+  );
+  const result = await response.json().catch(() => ({}));
+  if (response.ok) return { ok: true, invalidToken: false };
+  const details = JSON.stringify(result);
+  const invalidToken = details.includes("UNREGISTERED");
+  return {
+    ok: false,
+    invalidToken,
+    error: `FCM HTTP ${response.status}`,
+  };
 }
 
 Deno.serve(async (req) => {
+  const response = handlePostRequest(req);
+  if (response) return response;
+
   try {
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
-
     const now = new Date();
-    const isWeekend = now.getDay() === 0 || now.getDay() === 6;
-
     const { data: profiles, error: profilesError } = await supabase
       .from("profiles")
       .select("id, name, email, notification_prefs");
     if (profilesError) throw profilesError;
 
     const reports: unknown[] = [];
-
     for (const profile of profiles ?? []) {
-      const prefs = profile.notification_prefs ?? {};
-      if (isWeekend && prefs.weekend_enabled === false) continue;
+      try {
+        const prefs = profile.notification_prefs ?? {};
+        const timeZone = prefs.time_zone ?? "UTC";
+        const localNow = localDateTime(now, timeZone);
+        const digestTime = prefs.digest_time ?? "08:00";
 
-      const minScore = prefs.min_match_score ?? 70;
-      const maxJobs = prefs.max_jobs_per_day ?? 5;
-
-      const { data: matches, error: matchError } = await supabase
-        .from("job_matches")
-        .select("id, job_id, match_score, match_reason, jobs (title, company, source_url, apply_url)")
-        .eq("user_id", profile.id)
-        .eq("is_seen", false)
-        .eq("is_rejected", false)
-        .gte("match_score", minScore)
-        .order("match_score", { ascending: false })
-        .limit(maxJobs);
-      if (matchError) throw matchError;
-
-      if (!matches || matches.length === 0) {
-        reports.push({ user: profile.id, skipped: "no qualifying matches" });
-        continue;
-      }
-
-      const top = matches[0];
-      const title = `You have ${matches.length} new remote job${matches.length === 1 ? "" : "s"} today.`;
-      const body = `Top match: ${top.jobs?.title} — ${top.match_score}%`;
-
-      // Record the digest (job_id null = digest-level summary row).
-      await supabase.from("notifications").insert([
-        { user_id: profile.id, job_id: null, channel: "push", sent_at: now.toISOString() },
-      ]);
-
-      // 1) Push via FCM (deep link into Discover).
-      const token = await fcmAccessToken();
-      let push: string | null = null;
-      if (token) {
-        const fcmRes = await fetch(
-          `https://fcm.googleapis.com/v1/projects/${Deno.env.get("FCM_PROJECT_ID")}/messages:send`,
-          {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              message: {
-                topic: "daily-digest",
-                notification: { title, body },
-                data: { route: "/discover" },
-                android: { priority: "high" },
-              },
-            }),
-          },
-        );
-        push = (await fcmRes.json()).name ?? `error: ${fcmRes.status}`;
-      }
-
-      // 2) Optional email via Resend.
-      let email: string | null = null;
-      const resendKey = Deno.env.get("RESEND_API_KEY");
-      if (resendKey && profile.email) {
-        const list = matches
-          .map((m) => `• ${m.jobs?.title} — ${m.jobs?.company} (${m.match_score}%)`)
-          .join("\n");
-        const resendRes = await fetch("https://api.resend.com/emails", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${resendKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            from: "RemoteScout <digest@remotescout.app>",
-            to: [profile.email],
-            subject: title,
-            text: `${body}\n\n${list}\n\nOpen RemoteScout for the full breakdowns.`,
-          }),
-        });
-        email = resendRes.ok ? "sent" : `error: ${resendRes.status}`;
-        if (resendRes.ok) {
-          await supabase.from("notifications").insert([
-            { user_id: profile.id, job_id: null, channel: "email", sent_at: now.toISOString() },
-          ]);
+        if (!isDigestDue(now, timeZone, digestTime)) {
+          reports.push({ user: profile.id, skipped: "outside digest time" });
+          continue;
         }
-      }
+        if (isWeekend(now, timeZone) && prefs.weekend_enabled !== true) {
+          reports.push({
+            user: profile.id,
+            skipped: "weekend digests disabled",
+          });
+          continue;
+        }
 
-      reports.push({ user: profile.id, jobs: matches.length, push, email });
+        const { data: recentNotifications, error: recentError } = await supabase
+          .from("notifications")
+          .select("channel, sent_at")
+          .eq("user_id", profile.id)
+          .in("channel", ["push", "email"])
+          .gte(
+            "sent_at",
+            new Date(now.getTime() - 36 * 60 * 60 * 1000).toISOString(),
+          )
+          .order("sent_at", { ascending: false });
+        if (recentError) throw recentError;
+        const alreadySent = (recentNotifications ?? []).some((notification) =>
+          localDateTime(new Date(notification.sent_at), timeZone).date ===
+            localNow.date
+        );
+        if (alreadySent) {
+          reports.push({
+            user: profile.id,
+            skipped: "digest already sent today",
+          });
+          continue;
+        }
+
+        const minScore = Number(prefs.min_match_score ?? 70);
+        const maxJobs = Number(prefs.max_jobs_per_day ?? 5);
+        const { data: matches, error: matchError } = await supabase
+          .from("job_matches")
+          .select(
+            "id, job_id, match_score, jobs (title, company, source_url, apply_url)",
+          )
+          .eq("user_id", profile.id)
+          .eq("is_seen", false)
+          .eq("is_rejected", false)
+          .gte("match_score", minScore)
+          .order("match_score", { ascending: false })
+          .limit(maxJobs);
+        if (matchError) throw matchError;
+
+        const { data: followUps, error: followUpError } = await supabase
+          .from("applications")
+          .select("id, follow_up_at, jobs (title, company)")
+          .eq("user_id", profile.id)
+          .in("status", ["applied", "interview", "offer"])
+          .not("follow_up_at", "is", null)
+          .lte(
+            "follow_up_at",
+            new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString(),
+          );
+        if (followUpError) throw followUpError;
+
+        const hasMatches = (matches?.length ?? 0) > 0;
+        const hasFollowUps = (followUps?.length ?? 0) > 0;
+        if (!hasMatches && !hasFollowUps) {
+          reports.push({
+            user: profile.id,
+            skipped: "no qualifying matches or follow-ups",
+          });
+          continue;
+        }
+
+        const top = matches?.[0];
+        const topJob = firstRelated(top?.jobs);
+        const title = hasMatches
+          ? `You have ${matches!.length} new remote job${
+            matches!.length === 1 ? "" : "s"
+          } today.`
+          : "You have application follow-ups due.";
+        const reminders = hasFollowUps
+          ? ` ${followUps!.length} application follow-up${
+            followUps!.length === 1 ? " is" : "s are"
+          } due soon.`
+          : "";
+        const body = hasMatches
+          ? `Top match: ${topJob?.title ?? "New listing"} — ${
+            top!.match_score
+          }%.${reminders}`
+          : `${followUps!.length} application follow-up${
+            followUps!.length === 1 ? " is" : "s are"
+          } due soon.`;
+        const route = hasMatches ? "/discover" : "/applications";
+
+        const { data: devices, error: devicesError } = await supabase
+          .from("push_tokens")
+          .select("token")
+          .eq("user_id", profile.id);
+        if (devicesError) throw devicesError;
+
+        let pushSent = 0;
+        const deliveryErrors: string[] = [];
+        const projectId = Deno.env.get("FCM_PROJECT_ID");
+        if ((devices?.length ?? 0) > 0 && projectId) {
+          const accessToken = await fcmAccessToken();
+          if (!accessToken) {
+            deliveryErrors.push("FCM credentials are incomplete");
+          } else {
+            for (const device of devices ?? []) {
+              const result = await sendPush(
+                projectId,
+                accessToken,
+                device.token,
+                title,
+                body,
+                route,
+              );
+              if (result.ok) {
+                pushSent++;
+              } else {
+                deliveryErrors.push(result.error ?? "FCM delivery failed");
+                if (result.invalidToken) {
+                  const { error } = await supabase
+                    .from("push_tokens")
+                    .delete()
+                    .eq("token", device.token);
+                  if (error) throw error;
+                }
+              }
+            }
+          }
+        } else if ((devices?.length ?? 0) > 0) {
+          deliveryErrors.push(
+            "FCM_PROJECT_ID is required to send push notifications",
+          );
+        }
+
+        let emailSent = false;
+        const resendKey = Deno.env.get("RESEND_API_KEY");
+        if (resendKey && profile.email) {
+          const from = Deno.env.get("RESEND_FROM_EMAIL");
+          if (!from) {
+            deliveryErrors.push(
+              "RESEND_FROM_EMAIL is required when email is enabled",
+            );
+          } else {
+            const jobList = (matches ?? [])
+              .map((match) => {
+                const job = firstRelated(match.jobs);
+                return `${job?.title ?? "New listing"} — ${
+                  job?.company ?? "Unknown company"
+                } (${match.match_score}%)`;
+              })
+              .join("\n");
+            const followUpList = (followUps ?? [])
+              .map((application) => {
+                const job = firstRelated(application.jobs);
+                return `${job?.title ?? "Application"} — ${
+                  job?.company ?? "Unknown company"
+                } (${application.follow_up_at})`;
+              })
+              .join("\n");
+            const sections = [
+              body,
+              jobList ? `\nJobs:\n${jobList}` : "",
+              followUpList ? `\nFollow-ups:\n${followUpList}` : "",
+              "\n\nOpen RemoteScout for the full details.",
+            ].join("");
+            const response = await fetch("https://api.resend.com/emails", {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${resendKey}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                from,
+                to: [profile.email],
+                subject: title,
+                text: sections,
+              }),
+            });
+            if (response.ok) {
+              emailSent = true;
+            } else {
+              deliveryErrors.push(`Resend HTTP ${response.status}`);
+            }
+          }
+        }
+
+        if (pushSent > 0) {
+          const { error } = await supabase.from("notifications").insert({
+            user_id: profile.id,
+            job_id: null,
+            channel: "push",
+            sent_at: now.toISOString(),
+          });
+          if (error) throw error;
+        }
+        if (emailSent) {
+          const { error } = await supabase.from("notifications").insert({
+            user_id: profile.id,
+            job_id: null,
+            channel: "email",
+            sent_at: now.toISOString(),
+          });
+          if (error) throw error;
+        }
+
+        reports.push({
+          user: profile.id,
+          jobs: matches?.length ?? 0,
+          followUps: followUps?.length ?? 0,
+          devicesSent: pushSent,
+          emailSent,
+          errors: deliveryErrors,
+          skipped: pushSent === 0 && !emailSent && deliveryErrors.length === 0
+            ? "no registered push token or email channel"
+            : undefined,
+        });
+      } catch (error) {
+        reports.push({ user: profile.id, error: String(error) });
+      }
     }
 
-    return new Response(JSON.stringify({ reports }), {
-      headers: { "Content-Type": "application/json" },
-    });
-  } catch (e) {
-    return new Response(JSON.stringify({ error: String(e) }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+    return jsonResponse({ reports });
+  } catch (error) {
+    return jsonResponse({ error: String(error) }, 500);
   }
 });

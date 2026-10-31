@@ -89,6 +89,18 @@ create policy "notifications: own rows select"
 
 -- Writes restricted to the service role (send-digest worker).
 
+-- ========================================================= push_tokens ====
+
+alter table public.push_tokens enable row level security;
+
+drop policy if exists "push_tokens: own rows" on public.push_tokens;
+create policy "push_tokens: own rows"
+  on public.push_tokens
+  for all
+  to authenticated
+  using (user_id = auth.uid())
+  with check (user_id = auth.uid());
+
 -- ================================================================= storage =
 -- cv-files bucket: only the owning user may read/write their own CV.
 

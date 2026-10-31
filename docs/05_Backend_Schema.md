@@ -25,6 +25,9 @@
 | `portfolio_url` | text, nullable | |
 | `created_at` | timestamptz | default `now()` |
 
+The `notification_prefs` JSONB extension also stores the user's IANA `time_zone`
+so daily digest time and weekend settings follow local time, including DST.
+
 RLS: user can only `select`/`update` their own row (`id = auth.uid()`).
 
 ### 2.2 `jobs`
@@ -104,6 +107,17 @@ RLS: user can only access rows where `user_id = auth.uid()`.
 | `opened_at` | timestamptz, nullable | |
 
 RLS: user can only `select` their own rows; writes restricted to the service role.
+
+### 2.6 `push_tokens`
+
+| Column | Type | Notes |
+|---|---|---|
+| `token` | text, PK | FCM registration token |
+| `user_id` | uuid, FK → `profiles.id` | |
+| `updated_at` | timestamptz | refreshed when the device token changes |
+
+RLS: a user can register, refresh, and remove only their own device tokens;
+the digest worker reads tokens with the service role.
 
 ## 3. Relationships (ER summary)
 

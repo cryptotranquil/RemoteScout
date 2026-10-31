@@ -9,6 +9,15 @@ late final AppStore appStore;
 
 final storeProvider = Provider<AppStore>((ref) => appStore);
 
+/// Timestamp of the last feed refresh — drives the "Sync: …" app-bar stamp.
+final lastSyncProvider = StateProvider<DateTime?>((ref) => null);
+
+/// Refreshes the store and stamps the sync time.
+Future<void> refreshScout(WidgetRef ref) async {
+  await ref.read(storeProvider).refresh();
+  ref.read(lastSyncProvider.notifier).state = DateTime.now();
+}
+
 final profileProvider = StreamProvider<Profile?>(
   (ref) => ref.watch(storeProvider).watchProfile(),
 );

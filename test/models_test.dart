@@ -57,7 +57,8 @@ void main() {
   test('status enum wire names match the backend schema', () {
     expect(ApplicationStatus.applied.wire, 'applied');
     expect(ApplicationStatus.planToApply.wire, 'plan_to_apply');
-    expect(ApplicationStatus.fromWire('interview'), ApplicationStatus.interview);
+    expect(
+        ApplicationStatus.fromWire('interview'), ApplicationStatus.interview);
     expect(ApplicationStatus.fromWire('nonsense'), ApplicationStatus.neu);
   });
 
@@ -99,6 +100,7 @@ void main() {
   test('NotificationPrefs defaults are digest-safe', () {
     const prefs = NotificationPrefs();
     expect(prefs.digestTime, '08:00');
+    expect(prefs.timeZone, 'UTC');
     expect(prefs.minMatchScore, 70);
     expect(prefs.maxJobsPerDay, 5);
     expect(prefs.weekendEnabled, isFalse);

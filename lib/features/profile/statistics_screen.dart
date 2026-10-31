@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../core/theme/neumorphic.dart';
+import '../../core/ui/scout_ui.dart';
 import '../../data/providers.dart';
 import '../../models/models.dart';
-import '../discover/job_card.dart';
+
 
 /// Statistics (04_UIUX_Design.md §4.7) — fl_chart inside soft cards.
 class StatisticsScreen extends ConsumerWidget {
@@ -16,7 +16,7 @@ class StatisticsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final cards = ref.watch(applicationCardsProvider).valueOrNull ?? [];
     final matches = ref.watch(matchesProvider).valueOrNull ?? [];
-    final palette = NeuPalette.of(context);
+    final palette = ScoutColors.of(context);
 
     return Scaffold(
       body: SafeArea(
@@ -25,7 +25,7 @@ class StatisticsScreen extends ConsumerWidget {
           children: [
             Row(
               children: [
-                NeuIconButton(
+                ScoutIconButton(
                   icon: Icons.arrow_back,
                   onPressed: () => context.pop(),
                   size: 46,
@@ -37,7 +37,7 @@ class StatisticsScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 18),
             if (cards.isEmpty && matches.isEmpty)
-              const EmptyState(
+              const ScoutEmptyState(
                 icon: Icons.insights,
                 message: 'Not much to chart yet — save a few jobs and track '
                     'applications to fill this in.',
@@ -74,7 +74,7 @@ class StatisticsScreen extends ConsumerWidget {
                 'Scores are explainable: skills 40 · title 25 · location 20 · '
                 'experience 10 · freshness 5.',
                 style: Theme.of(context).textTheme.labelSmall!.copyWith(
-                    color: palette.textSecondary),
+                    color: palette.muted),
               ),
             ],
           ],
@@ -97,7 +97,7 @@ class _ChartCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return NeuCard(
+    return ScoutCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -170,7 +170,7 @@ class _ApplicationsOverTime extends StatelessWidget {
           show: true,
           drawVerticalLine: false,
           getDrawingHorizontalLine: (v) => FlLine(
-            color: NeuPalette.of(context).track,
+            color: ScoutColors.of(context).track,
             strokeWidth: 1,
           ),
         ),
@@ -186,20 +186,20 @@ class _ApplicationsOverTime extends StatelessWidget {
           LineChartBarData(
             spots: spots,
             isCurved: true,
-            color: Luna.luna500,
+            color: Scout.primary,
             barWidth: 3,
             dotData: FlDotData(
               show: true,
               getDotPainter: (spot, percent, bar, index) =>
                   FlDotCirclePainter(
                 radius: 3,
-                color: Luna.luna300,
+                color: Scout.secondary,
                 strokeWidth: 0,
               ),
             ),
             belowBarData: BarAreaData(
               show: true,
-              color: fade(Luna.luna500, 0.10),
+              color: Scout.primary.withValues(alpha: 0.10),
             ),
           ),
         ],
@@ -231,7 +231,7 @@ class _StatusFunnel extends StatelessWidget {
           show: true,
           drawVerticalLine: false,
           getDrawingHorizontalLine: (v) => FlLine(
-            color: NeuPalette.of(context).track,
+            color: ScoutColors.of(context).track,
             strokeWidth: 1,
           ),
         ),
@@ -254,7 +254,7 @@ class _StatusFunnel extends StatelessWidget {
               barRods: [
                 BarChartRodData(
                   toY: counts[statuses[i]]!.toDouble(),
-                  color: i == 0 ? Luna.luna300 : Luna.luna500,
+                  color: i == 0 ? Scout.secondary : Scout.primary,
                   width: 14,
                   borderRadius: BorderRadius.circular(6),
                 ),
@@ -300,7 +300,7 @@ class _ScoreDistribution extends StatelessWidget {
           show: true,
           drawVerticalLine: false,
           getDrawingHorizontalLine: (v) => FlLine(
-            color: NeuPalette.of(context).track,
+            color: ScoutColors.of(context).track,
             strokeWidth: 1,
           ),
         ),
@@ -319,7 +319,7 @@ class _ScoreDistribution extends StatelessWidget {
               barRods: [
                 BarChartRodData(
                   toY: buckets[i],
-                  color: i >= 3 ? Luna.luna500 : Luna.luna300,
+                  color: i >= 3 ? Scout.primary : Scout.secondary,
                   width: 16,
                   borderRadius: BorderRadius.circular(6),
                 ),

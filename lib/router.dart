@@ -33,13 +33,18 @@ class AppRouterRefresh extends ChangeNotifier {
   }
 }
 
-GoRouter buildRouter(AppRouterRefresh refresh) {
+GoRouter buildRouter(
+  AppRouterRefresh refresh, {
+  String? initialLocation,
+}) {
   return GoRouter(
-    initialLocation: appStore.isOnboarded ? '/discover' : '/welcome',
+    initialLocation:
+        initialLocation ?? (appStore.isOnboarded ? '/discover' : '/welcome'),
     refreshListenable: refresh,
     routes: [
       GoRoute(path: '/welcome', builder: (_, __) => const WelcomeScreen()),
-      GoRoute(path: '/onboarding', builder: (_, __) => const OnboardingScreen()),
+      GoRoute(
+          path: '/onboarding', builder: (_, __) => const OnboardingScreen()),
       GoRoute(
         path: '/notifications-setup',
         builder: (_, __) => const NotificationPrefsScreen(initialSetup: true),
@@ -48,7 +53,8 @@ GoRouter buildRouter(AppRouterRefresh refresh) {
         builder: (context, state, shell) => AppShell(shell: shell),
         branches: [
           StatefulShellBranch(routes: [
-            GoRoute(path: '/discover', builder: (_, __) => const DiscoverScreen()),
+            GoRoute(
+                path: '/discover', builder: (_, __) => const DiscoverScreen()),
           ]),
           StatefulShellBranch(routes: [
             GoRoute(path: '/saved', builder: (_, __) => const SavedScreen()),
@@ -60,7 +66,8 @@ GoRouter buildRouter(AppRouterRefresh refresh) {
             ),
           ]),
           StatefulShellBranch(routes: [
-            GoRoute(path: '/profile', builder: (_, __) => const ProfileScreen()),
+            GoRoute(
+                path: '/profile', builder: (_, __) => const ProfileScreen()),
           ]),
         ],
       ),

@@ -28,9 +28,7 @@ Open `preview/mockups.html` for a visual walkthrough of the key screens.
   location → salary/time zones → portfolio/CV) with soft-inset progress dots.
 - Notification preferences step (digest time, min match score, max jobs/day,
   weekend toggle) with soft toggles + inset time picker.
-- `Job` model + five realistic junior data-analytics mock listings covering
-  every state the UI must handle (all three location scopes, salary present/
-  absent, matched/missing skills).
+- `Job` model + configurable listing UI backed by live or locally cached jobs.
 - Neomorphic job card + Discover (“Today’s Recommendations”) screen.
 - Save / Reject actions with the seen/don’t-show-again semantics.
 - Saved screen with search + sort.
@@ -68,8 +66,8 @@ Open `preview/mockups.html` for a visual walkthrough of the key screens.
 **App wiring is done.** Screens talk to an `AppStore` interface with two
 implementations:
 
-- `LocalStore` — Hive persistence (Phase 1–2 mode; default when no backend
-  is configured, keeps shipping with mock listings).
+- `LocalStore` — Hive persistence (local-only mode when no backend is
+  configured; no bundled demo listings).
 - `SyncedStore` — Supabase as remote truth with the local store as the
   offline-first cache (TRD §7: <1s render from cache, offline viewing).
   Anonymous auth gives RLS an `auth.uid()` subject; every mutation updates
@@ -90,18 +88,17 @@ flutter run \
   --dart-define=SUPABASE_ANON_KEY=YOUR-ANON-KEY
 ```
 
-### Phase 4 — notifications & polish 🧩 (code ready, needs credentials)
+### Phase 4 — notifications & polish 🧩 (implemented; needs project setup)
 
-- `backend/functions/send-digest` — top-N ≥ threshold, max-jobs/day cap,
-  weekend toggle, FCM push (HTTP v1, deep-links to `/discover`) + optional
-  Resend email, records `notifications` rows.
+- Timezone-aware daily digest worker — per-user local time and weekend toggle,
+  top-N threshold and cap, registered-device FCM push with app deep links,
+  optional Resend email, and follow-up reminders.
+- Flutter FCM registration and notification-tap routing are implemented.
+  Firebase/Supabase credentials and platform app registrations are still
+  required to deliver notifications.
 - Statistics screen (fl_chart): applications over time, status funnel,
   match-score distribution.
 - Second source (Remote OK) already normalized in `_shared/normalizers.ts`.
-- Remaining: add `firebase_messaging` to the app once a Firebase project
-  exists (deliberately not a default dependency — it requires
-  `google-services.json` and would break builds without one), then wire
-  follow-up reminders from `applications.follow_up_at`.
 
 ## Getting started
 
@@ -112,21 +109,29 @@ cd remotescout
 flutter create --platforms=android .
 
 flutter pub get
-flutter run          # Phase 1–2 mode: local mock data, no backend needed
+flutter run          # Local-only mode; no backend or bundled demo data
 flutter test         # 32 unit + widget tests
 flutter analyze
 
 # Phase 3 mode: live Supabase backend (see backend/README.md first)
 flutter run \
   --dart-define=SUPABASE_URL=https://YOUR-PROJECT.supabase.co \
-  --dart-define=SUPABASE_ANON_KEY=YOUR-ANON-KEY
+  --dart-define=SUPABASE_ANON_KEY=YOUR-ANON-KEY \
+  --dart-define=FIREBASE_API_KEY=YOUR-FIREBASE-API-KEY \
+  --dart-define=FIREBASE_APP_ID=YOUR-FIREBASE-APP-ID \
+  --dart-define=FIREBASE_MESSAGING_SENDER_ID=YOUR-SENDER-ID \
+  --dart-define=FIREBASE_PROJECT_ID=YOUR-FIREBASE-PROJECT-ID
 ```
+
+Firebase client configuration is not a server secret. Keep the Supabase
+service-role key and Firebase service-account private key on the backend only.
+See [`backend/README.md`](backend/README.md) for deployment and scheduling.
 
 ## Project layout
 
 ```
 lib/
-  main.dart                 boot: Hive init → seed mocks → rescore → runApp
+  main.dart                 boot: Hive init → optional Supabase sync → runApp
   app.dart                  MaterialApp.router (light/dark LUNA themes)
   router.dart               go_router: shell tabs + detail routes
   shell.dart                soft raised bottom nav (Discover|Saved|Applications|Profile)
@@ -143,6 +148,7 @@ lib/
     supabase/
       mappers.dart          pure row ↔ model mapping (SQL contract tests)
       synced_store.dart     Supabase remote truth + local offline cache
+    push_notifications.dart Firebase Messaging token registration and routing
   config/env.dart           --dart-define backend configuration
   features/
     onboarding/             welcome, 6-step setup, notification prefs, form

@@ -9,14 +9,15 @@ import 'app.dart';
 import 'config/env.dart';
 import 'data/app_store.dart';
 import 'data/local_store.dart';
-import 'data/mock_data.dart';
 import 'data/providers.dart';
+import 'data/push_notifications.dart';
 import 'data/supabase/synced_store.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Hive.initFlutter();
   final local = await LocalStore.open();
+  await local.removeBundledMockData();
 
   AppStore store = local;
   if (Env.isLiveConfigured) {
@@ -31,7 +32,21 @@ Future<void> main() async {
       await ensureSignedIn(client);
       final synced = SyncedStore(local, client);
       await synced.initialSync(); // offline-first cache warm-up
+      try {
+        final timeZone = await PushNotificationService.currentTimeZone();
+        await synced.savePrefs(synced.prefs.copyWith(timeZone: timeZone));
+      } catch (e) {
+        debugPrint('RemoteScout: could not refresh device time zone — $e');
+      }
       store = synced;
+      if (Env.isFirebaseConfigured) {
+        try {
+          pushNotificationService =
+              await PushNotificationService.configure(client);
+        } catch (e) {
+          debugPrint('RemoteScout: push notifications unavailable — $e');
+        }
+      }
       // Pull fresh scored listings in the background — the UI is already up.
       unawaited(synced.refresh());
     } catch (e) {
@@ -39,8 +54,7 @@ Future<void> main() async {
       debugPrint('RemoteScout: Supabase unavailable, staying local — $e');
     }
   } else {
-    // Phase 1–2 mode: bundled mock listings, no backend needed.
-    await seedMockJobs(local);
+    // Local-only mode serves persisted user data without demo listings.
     await local.rescore();
   }
 

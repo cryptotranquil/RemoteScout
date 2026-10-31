@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../core/theme/neumorphic.dart';
+import '../../core/ui/scout_ui.dart';
+import '../../data/push_notifications.dart';
 import '../../data/providers.dart';
 import '../../models/models.dart';
 import 'notification_prefs_card.dart';
@@ -36,10 +37,38 @@ class _NotificationPrefsScreenState
 
   Future<void> _finish() async {
     final store = ref.read(storeProvider);
-    await store.savePrefs(_prefs);
+    try {
+      final timezone = await PushNotificationService.currentTimeZone();
+      await store.savePrefs(_prefs.copyWith(timeZone: timezone));
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text('Could not save notification preferences: $error')),
+      );
+      return;
+    }
     await store.setOnboarded();
+    var pushMessage = '';
+    final push = pushNotificationService;
+    if (push != null) {
+      try {
+        final enabled = await push.requestPermissionAndRegister();
+        if (!enabled) {
+          pushMessage = 'Push permission was not granted. You can enable it '
+              'later in your device settings.';
+        }
+      } catch (error) {
+        pushMessage = 'Could not register this device for push notifications: '
+            '$error';
+      }
+    }
     if (!mounted) return;
     context.go('/discover');
+    if (pushMessage.isNotEmpty) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(pushMessage)));
+    }
   }
 
   @override
@@ -54,7 +83,7 @@ class _NotificationPrefsScreenState
               if (!widget.initialSetup)
                 Row(
                   children: [
-                    NeuIconButton(
+                    ScoutIconButton(
                       icon: Icons.close,
                       onPressed: () => context.pop(),
                       size: 46,
@@ -84,7 +113,7 @@ class _NotificationPrefsScreenState
                 ),
               ),
               const SizedBox(height: 16),
-              NeuButton(
+              ScoutButton(
                 filled: true,
                 key: const ValueKey('finish-setup'),
                 onPressed: _finish,

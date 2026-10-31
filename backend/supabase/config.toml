@@ -1,0 +1,21 @@
+project_id = "ynecbuiuopisddgnatjn"
+
+[functions.fetch-jobs]
+enabled = true
+verify_jwt = true
+entrypoint = "../functions/fetch-jobs/index.ts"
+
+[functions.score-jobs]
+enabled = true
+verify_jwt = true
+entrypoint = "../functions/score-jobs/index.ts"
+
+[functions.send-digest]
+enabled = true
+verify_jwt = true
+entrypoint = "../functions/send-digest/index.ts"
+
+[functions.report-expired]
+enabled = true
+verify_jwt = true
+entrypoint = "../functions/report-expired/index.ts"

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../core/theme/neumorphic.dart';
+import '../../core/ui/scout_ui.dart';
 import '../../data/providers.dart';
 import '../onboarding/profile_form.dart';
 
@@ -95,7 +95,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                 children: [
                   Row(
                     children: [
-                      NeuIconButton(
+                      ScoutIconButton(
                         icon: Icons.arrow_back,
                         onPressed: () => context.pop(),
                         size: 46,
@@ -107,7 +107,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                     ],
                   ),
                   const SizedBox(height: 18),
-                  NeuCard(
+                  ScoutCard(
                     inset: true,
                     child: ProfileFormFields(
                       nameController: _name,
@@ -133,16 +133,14 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
             Container(
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
               decoration: BoxDecoration(
-                color: Theme.of(context).scaffoldBackgroundColor,
-                boxShadow: [
-                  BoxShadow(
-                    color: NeuPalette.of(context).shadow,
-                    blurRadius: 14,
-                    offset: const Offset(0, -5),
+                color: ScoutColors.of(context).card,
+                border: Border(
+                  top: BorderSide(
+                    color: ScoutColors.of(context).outlineVariant,
                   ),
-                ],
+                ),
               ),
-              child: NeuButton(
+              child: ScoutButton(
                 key: const ValueKey('save-profile'),
                 filled: true,
                 onPressed: _save,

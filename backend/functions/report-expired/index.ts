@@ -5,15 +5,16 @@
 // security-definer RPC so `jobs` stays service-role-write-only.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { handlePostRequest, jsonResponse } from "../_shared/http.ts";
 
 Deno.serve(async (req) => {
+  const response = handlePostRequest(req);
+  if (response) return response;
+
   try {
     const { job_id } = await req.json();
     if (!job_id) {
-      return new Response(JSON.stringify({ error: "job_id required" }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      });
+      return jsonResponse({ error: "job_id required" }, 400);
     }
 
     const supabase = createClient(
@@ -26,13 +27,8 @@ Deno.serve(async (req) => {
     });
     if (error) throw error;
 
-    return new Response(JSON.stringify({ ok: true, job_id }), {
-      headers: { "Content-Type": "application/json" },
-    });
+    return jsonResponse({ ok: true, job_id });
   } catch (e) {
-    return new Response(JSON.stringify({ error: String(e) }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+    return jsonResponse({ error: String(e) }, 500);
   }
 });

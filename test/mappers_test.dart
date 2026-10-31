@@ -15,8 +15,10 @@ void main() {
         'title': 'Junior Data Analyst',
         'company': 'Example Labs',
         'description': 'SQL and Excel.',
-        'apply_url': 'https://remotive.com/remote-jobs/data/junior-data-analyst-881201',
-        'source_url': 'https://remotive.com/remote-jobs/data/junior-data-analyst-881201',
+        'apply_url':
+            'https://remotive.com/remote-jobs/data/junior-data-analyst-881201',
+        'source_url':
+            'https://remotive.com/remote-jobs/data/junior-data-analyst-881201',
         'location_text': 'Worldwide',
         'location_scope': 'worldwide',
         'salary_min': 28000,
@@ -68,12 +70,13 @@ void main() {
       'match_score': 82,
       'matched_skills': ['SQL', 'Excel'],
       'missing_skills': ['Looker'],
-      'match_reason': 'Matches SQL and Excel · Worldwide eligible · Posted 2 days ago\n'
-          '\n'
-          '✓ Matches SQL, Excel\n'
-          '✓ Junior-friendly\n'
-          '— Region-restricted (Europe)\n'
-          '✓ Posted 2 days ago',
+      'match_reason':
+          'Matches SQL and Excel · Worldwide eligible · Posted 2 days ago\n'
+              '\n'
+              '✓ Matches SQL, Excel\n'
+              '✓ Junior-friendly\n'
+              '— Region-restricted (Europe)\n'
+              '✓ Posted 2 days ago',
       'is_seen': true,
       'is_saved': false,
       'is_rejected': false,
@@ -117,6 +120,7 @@ void main() {
   test('profile rows carry notification_prefs JSONB', () {
     const prefs = NotificationPrefs(
       digestTime: '07:30',
+      timeZone: 'America/Los_Angeles',
       minMatchScore: 75,
       maxJobsPerDay: 3,
       weekendEnabled: true,
@@ -147,6 +151,7 @@ void main() {
     };
     expect(profileFromRow(merged).name, 'Scout');
     expect(prefsFromRow(merged).digestTime, '07:30');
+    expect(prefsFromRow(merged).timeZone, 'America/Los_Angeles');
     expect(prefsFromRow(merged).weekendEnabled, isTrue);
   });
 
@@ -162,7 +167,13 @@ void main() {
     );
     final row = applicationToRow(app);
     expect(row['status'], 'plan_to_apply');
-    final back = applicationFromRow({...row, 'applied_at': null, 'cv_version': null, 'cover_letter': null, 'notes': null});
+    final back = applicationFromRow({
+      ...row,
+      'applied_at': null,
+      'cv_version': null,
+      'cover_letter': null,
+      'notes': null
+    });
     expect(back.status, ApplicationStatus.planToApply);
     expect(back.followUpAt, DateTime.utc(2026, 10, 3));
   });

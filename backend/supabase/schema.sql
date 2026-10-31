@@ -23,7 +23,7 @@ create table if not exists public.profiles (
   -- the profile as JSONB: {digest_time, min_match_score, max_jobs_per_day,
   -- weekend_enabled}. Kept here so `send-digest` can read them in one query.
   notification_prefs jsonb not null default
-    '{"digest_time":"08:00","min_match_score":70,"max_jobs_per_day":5,"weekend_enabled":false}'::jsonb
+    '{"digest_time":"08:00","time_zone":"UTC","min_match_score":70,"max_jobs_per_day":5,"weekend_enabled":false}'::jsonb
 );
 
 -- ================================================================= jobs ====
@@ -133,6 +133,15 @@ create table if not exists public.notifications (
   opened_at  timestamptz
 );
 
+-- FCM registration tokens are private to each authenticated user's devices.
+create table if not exists public.push_tokens (
+  token      text primary key,
+  user_id    uuid not null references public.profiles (id) on delete cascade,
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists push_tokens_user_idx on public.push_tokens (user_id);
+
 -- ============================================ manual "report expired" RPC ==
 -- Column-level update via security definer so users can flag expired jobs
 -- without broader write access to `jobs` (writes are otherwise service-role).
@@ -154,19 +163,7 @@ revoke all on function public.report_expired_job(uuid) from public;
 grant execute on function public.report_expired_job(uuid) to authenticated;
 
 -- ============================================== scheduled worker (cron) ====
--- Requires the pg_cron extension (enable in Dashboard → Database → Extensions).
--- Adjust schedules to taste; Edge Function HTTP endpoints are invoked via
--- net/http_post or Supabase scheduled functions (`supabase schedule`).
---
--- select cron.schedule('fetch-jobs', '15 */3 * * *', $$
---   select net.http_post(
---     url := current_setting('app.settings.functions_url') || '/fetch-jobs',
---     headers := jsonb_build_object('Authorization', current_setting('app.settings.service_role_key'))
---   );
--- $$);
---
--- select cron.schedule('score-jobs', '25 */3 * * *', $$ ... '/score-jobs' ... $$);
--- select cron.schedule('send-digest', '0 8 * * *',  $$ ... '/send-digest' ... $$);
+-- Worker schedules and private Vault credential setup are in schedule.sql.
 
 -- ================================================================ storage ==
 -- Private CV bucket, RLS-scoped to the owning user (see rls.sql).

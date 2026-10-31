@@ -181,9 +181,7 @@ class Job {
     String fmt(double v) {
       if (v >= 1000) {
         final k = v / 1000;
-        return k == k.roundToDouble()
-            ? '${k.round()}k'
-            : k.toStringAsFixed(1);
+        return k == k.roundToDouble() ? '${k.round()}k' : k.toStringAsFixed(1);
       }
       return v.round().toString();
     }
@@ -266,7 +264,8 @@ class Job {
         applyUrl: json['apply_url'] as String,
         sourceUrl: json['source_url'] as String,
         locationText: json['location_text'] as String? ?? 'Unspecified',
-        locationScope: LocationScope.fromWire(json['location_scope'] as String?),
+        locationScope:
+            LocationScope.fromWire(json['location_scope'] as String?),
         salaryMin: (json['salary_min'] as num?)?.toDouble(),
         salaryMax: (json['salary_max'] as num?)?.toDouble(),
         currency: json['currency'] as String?,
@@ -460,6 +459,7 @@ class Application {
 class NotificationPrefs {
   const NotificationPrefs({
     this.digestTime = '08:00',
+    this.timeZone = 'UTC',
     this.minMatchScore = 70,
     this.maxJobsPerDay = 5,
     this.weekendEnabled = false,
@@ -467,18 +467,21 @@ class NotificationPrefs {
 
   /// HH:mm local time for the daily digest.
   final String digestTime;
+  final String timeZone;
   final int minMatchScore;
   final int maxJobsPerDay;
   final bool weekendEnabled;
 
   NotificationPrefs copyWith({
     String? digestTime,
+    String? timeZone,
     int? minMatchScore,
     int? maxJobsPerDay,
     bool? weekendEnabled,
   }) =>
       NotificationPrefs(
         digestTime: digestTime ?? this.digestTime,
+        timeZone: timeZone ?? this.timeZone,
         minMatchScore: minMatchScore ?? this.minMatchScore,
         maxJobsPerDay: maxJobsPerDay ?? this.maxJobsPerDay,
         weekendEnabled: weekendEnabled ?? this.weekendEnabled,
@@ -486,6 +489,7 @@ class NotificationPrefs {
 
   Map<String, dynamic> toJson() => {
         'digest_time': digestTime,
+        'time_zone': timeZone,
         'min_match_score': minMatchScore,
         'max_jobs_per_day': maxJobsPerDay,
         'weekend_enabled': weekendEnabled,
@@ -494,6 +498,7 @@ class NotificationPrefs {
   static NotificationPrefs fromJson(Map<String, dynamic> json) =>
       NotificationPrefs(
         digestTime: json['digest_time'] as String? ?? '08:00',
+        timeZone: json['time_zone'] as String? ?? 'UTC',
         minMatchScore: (json['min_match_score'] as num?)?.toInt() ?? 70,
         maxJobsPerDay: (json['max_jobs_per_day'] as num?)?.toInt() ?? 5,
         weekendEnabled: json['weekend_enabled'] as bool? ?? false,

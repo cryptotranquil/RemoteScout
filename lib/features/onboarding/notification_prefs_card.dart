@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../core/theme/neumorphic.dart';
+import '../../core/ui/scout_ui.dart';
 import '../../models/models.dart';
 
 /// Notification preferences card (onboarding + Profile) — PRD §6.5:
@@ -36,15 +36,15 @@ class NotificationPrefsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final palette = NeuPalette.of(context);
+    final palette = ScoutColors.of(context);
     final labelStyle = Theme.of(context).textTheme.bodyMedium!;
     final valueStyle = Theme.of(context).textTheme.titleSmall!;
 
-    return NeuCard(
+    return ScoutCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const NeuSectionLabel('Daily digest'),
+          const ScoutSectionLabel('Daily digest'),
           Row(
             children: [
               Expanded(child: Text('Digest time', style: labelStyle)),
@@ -56,17 +56,21 @@ class NotificationPrefsCard extends StatelessWidget {
                       const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                   constraints: const BoxConstraints(minHeight: 44),
                   decoration: BoxDecoration(
-                    color: palette.base,
-                    borderRadius: BorderRadius.circular(14),
-                    boxShadow: palette.inset(blur: 7, distance: 3),
+                    color: palette.surfaceContainer,
+                    borderRadius: BorderRadius.circular(ScoutRadius.sm),
                   ),
                   child: Text(
                     formatDigestTime(prefs.digestTime),
-                    style: valueStyle.copyWith(color: palette.accent),
+                    style: valueStyle.copyWith(color: palette.primary),
                   ),
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Local time · ${prefs.timeZone}',
+            style: Theme.of(context).textTheme.bodySmall,
           ),
           const SizedBox(height: 18),
           Text('Minimum match score  ·  ${prefs.minMatchScore}%',
@@ -76,7 +80,7 @@ class NotificationPrefsCard extends StatelessWidget {
             min: 0,
             max: 100,
             divisions: 20,
-            activeColor: Luna.luna500,
+            activeColor: Scout.primary,
             inactiveColor: palette.track,
             onChanged: (v) =>
                 onChanged(prefs.copyWith(minMatchScore: v.round())),
@@ -88,9 +92,8 @@ class NotificationPrefsCard extends StatelessWidget {
               _StepperControl(
                 value: prefs.maxJobsPerDay,
                 onMinus: () => onChanged(prefs.copyWith(
-                    maxJobsPerDay: prefs.maxJobsPerDay > 1
-                        ? prefs.maxJobsPerDay - 1
-                        : 1)),
+                    maxJobsPerDay:
+                        prefs.maxJobsPerDay > 1 ? prefs.maxJobsPerDay - 1 : 1)),
                 onPlus: () => onChanged(prefs.copyWith(
                     maxJobsPerDay: prefs.maxJobsPerDay < 15
                         ? prefs.maxJobsPerDay + 1
@@ -102,7 +105,7 @@ class NotificationPrefsCard extends StatelessWidget {
           Row(
             children: [
               Expanded(child: Text('Weekend digests', style: labelStyle)),
-              NeuToggle(
+              ScoutSwitch(
                 value: prefs.weekendEnabled,
                 onChanged: (v) => onChanged(prefs.copyWith(weekendEnabled: v)),
               ),
@@ -145,12 +148,12 @@ class _StepperControl extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        NeuIconButton(icon: Icons.remove, onPressed: onMinus, size: 44),
+        ScoutIconButton(icon: Icons.remove, onPressed: onMinus, size: 44),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 14),
           child: Text('$value', style: Theme.of(context).textTheme.titleSmall),
         ),
-        NeuIconButton(icon: Icons.add, onPressed: onPlus, size: 44),
+        ScoutIconButton(icon: Icons.add, onPressed: onPlus, size: 44),
       ],
     );
   }

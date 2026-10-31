@@ -20,12 +20,18 @@ String normalizeUrlKey(String input) {
 }
 
 /// True when [a] and [b] represent the same listing.
-bool isDuplicateJob(String ingestA, String crossA, String ingestB, String crossB) =>
+bool isDuplicateJob(
+        String ingestA, String crossA, String ingestB, String crossB) =>
     ingestA == ingestB || crossA == crossB;
 
 class DedupIndex {
   final Set<String> _ingestKeys = {};
   final Set<String> _crossKeys = {};
+
+  void clear() {
+    _ingestKeys.clear();
+    _crossKeys.clear();
+  }
 
   /// Returns true if [ingestKey]/[crossKey] was not seen before (and records it).
   bool tryAdd(String ingestKey, String crossKey) {

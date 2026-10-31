@@ -14,8 +14,8 @@ import 'app_store.dart';
 /// swapping in the remote store is a straight translation (see
 /// `supabase/mappers.dart`).
 class LocalStore implements AppStore {
-  LocalStore._(this._meta, this._profile, this._prefs, this._jobs, this._matches,
-      this._applications) {
+  LocalStore._(this._meta, this._profile, this._prefs, this._jobs,
+      this._matches, this._applications) {
     _dedup.seed(_jobs.values.map((raw) {
       final job = Job.fromJson(_decode(raw));
       return (job.ingestKey, job.crossSourceKey);
@@ -47,6 +47,36 @@ class LocalStore implements AppStore {
       await Hive.openBox<dynamic>(matchesBoxName),
       await Hive.openBox<dynamic>(applicationsBoxName),
     );
+  }
+
+  /// Removes demo listings left behind by earlier app versions.
+  Future<void> removeBundledMockData() async {
+    final mockJobIds = allJobs
+        .where((job) => job.id.startsWith('mock-'))
+        .map((job) => job.id)
+        .toSet();
+    if (mockJobIds.isEmpty) return;
+
+    await _jobs.deleteAll(mockJobIds);
+
+    final mockMatchIds = allMatches
+        .where((match) => mockJobIds.contains(match.jobId))
+        .map((match) => match.id)
+        .toList();
+    await _matches.deleteAll(mockMatchIds);
+
+    final mockApplicationIds = allApplications
+        .where((application) =>
+            application.jobId != null && mockJobIds.contains(application.jobId))
+        .map((application) => application.id)
+        .toList();
+    await _applications.deleteAll(mockApplicationIds);
+
+    _dedup.clear();
+    _dedup.seed(_jobs.values.map((raw) {
+      final job = Job.fromJson(_decode(raw));
+      return (job.ingestKey, job.crossSourceKey);
+    }));
   }
 
   static Map<String, dynamic> _decode(dynamic raw) =>
@@ -225,8 +255,11 @@ class LocalStore implements AppStore {
     final raw = _matches.get(matchId);
     if (raw == null) return;
     final match = JobMatch.fromJson(_decode(raw));
-    await _matches.put(matchId,
-        match.copyWith(isSeen: true, isSaved: false, isRejected: true).toJson());
+    await _matches.put(
+        matchId,
+        match
+            .copyWith(isSeen: true, isSaved: false, isRejected: true)
+            .toJson());
 
     // A never-applied application row is removed; anything further along
     // in the pipeline moves to `rejected` instead (the application happened).

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../core/theme/neumorphic.dart';
+import '../../core/ui/scout_ui.dart';
 
 /// Multi-select chip field with suggestions + free entry
 /// (target roles, skills, time zones in onboarding/profile).
@@ -53,7 +53,7 @@ class _ChipsFieldState extends State<ChipsField> {
 
   @override
   Widget build(BuildContext context) {
-    final palette = NeuPalette.of(context);
+    final palette = ScoutColors.of(context);
     final extras = widget.suggestions
         .where((s) => !widget.selected.contains(s))
         .toList();
@@ -74,9 +74,9 @@ class _ChipsFieldState extends State<ChipsField> {
                         horizontal: 14, vertical: 10),
                     constraints: const BoxConstraints(minHeight: 40),
                     decoration: BoxDecoration(
-                      color: palette.base,
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: palette.inset(blur: 7, distance: 3),
+                      color: palette.surfaceContainer,
+                      borderRadius:
+                          BorderRadius.circular(ScoutRadius.sm),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -86,10 +86,10 @@ class _ChipsFieldState extends State<ChipsField> {
                                 .textTheme
                                 .labelMedium!
                                 .copyWith(
-                                    color: palette.accent,
+                                    color: palette.primary,
                                     fontWeight: FontWeight.w700)),
                         const SizedBox(width: 6),
-                        Icon(Icons.close, size: 14, color: palette.textSecondary),
+                        Icon(Icons.close, size: 14, color: palette.muted),
                       ],
                     ),
                   ),
@@ -104,7 +104,7 @@ class _ChipsFieldState extends State<ChipsField> {
             runSpacing: 10,
             children: [
               for (final value in extras)
-                NeuPill(
+                ScoutFilterPill(
                   key: ValueKey('suggestion-$value'),
                   label: value,
                   selected: false,
@@ -117,7 +117,7 @@ class _ChipsFieldState extends State<ChipsField> {
         Row(
           children: [
             Expanded(
-              child: NeuInput(
+              child: ScoutInput(
                 controller: _controller,
                 hint: widget.hint,
                 textInputAction: TextInputAction.done,
@@ -125,7 +125,7 @@ class _ChipsFieldState extends State<ChipsField> {
               ),
             ),
             const SizedBox(width: 10),
-            NeuIconButton(
+            ScoutIconButton(
               key: const ValueKey('chip-add'),
               icon: Icons.add,
               onPressed: _addFreeText,
@@ -212,16 +212,16 @@ class ProfileFormFields extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const NeuSectionLabel('About you'),
-        NeuInput(controller: nameController, hint: 'Your name'),
+        const ScoutSectionLabel('About you'),
+        ScoutInput(controller: nameController, hint: 'Your name'),
         const SizedBox(height: 12),
-        NeuInput(
+        ScoutInput(
           controller: emailController,
           hint: 'Email (for the optional email digest)',
           keyboardType: TextInputType.emailAddress,
         ),
         const SizedBox(height: 18),
-        const NeuSectionLabel('Target roles'),
+        const ScoutSectionLabel('Target roles'),
         ChipsField(
           key: const ValueKey('roles-field'),
           selected: roles,
@@ -230,7 +230,7 @@ class ProfileFormFields extends StatelessWidget {
           hint: 'Add a role…',
         ),
         const SizedBox(height: 18),
-        const NeuSectionLabel('Skills'),
+        const ScoutSectionLabel('Skills'),
         ChipsField(
           key: const ValueKey('skills-field'),
           selected: skills,
@@ -239,13 +239,13 @@ class ProfileFormFields extends StatelessWidget {
           hint: 'Add a skill…',
         ),
         const SizedBox(height: 18),
-        const NeuSectionLabel('Experience level'),
+        const ScoutSectionLabel('Experience level'),
         Wrap(
           spacing: 10,
           runSpacing: 10,
           children: [
             for (final level in const ['junior', 'entry', 'associate'])
-              NeuPill(
+              ScoutFilterPill(
                 label: switch (level) {
                   'junior' => 'Junior',
                   'entry' => 'Entry-level',
@@ -257,8 +257,8 @@ class ProfileFormFields extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 18),
-        const NeuSectionLabel('Location eligibility'),
-        const LocationBadge(
+        const ScoutSectionLabel('Location eligibility'),
+        const ScoutLocationBadge(
           scope: 'worldwide',
           detail: 'Worldwide-remote roles only (no fixed country restriction)',
         ),
@@ -267,7 +267,7 @@ class ProfileFormFields extends StatelessWidget {
           spacing: 10,
           runSpacing: 10,
           children: [
-            NeuPill(
+            ScoutFilterPill(
               label: 'Worldwide remote',
               selected: preferredCountries.contains('worldwide'),
               onTap: () => onCountriesChanged(
@@ -277,14 +277,14 @@ class ProfileFormFields extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 18),
-        const NeuSectionLabel('Minimum salary (optional)'),
-        NeuInput(
+        const ScoutSectionLabel('Minimum salary (optional)'),
+        ScoutInput(
           controller: salaryController,
           hint: 'e.g. 24000',
           keyboardType: TextInputType.number,
         ),
         const SizedBox(height: 18),
-        const NeuSectionLabel('Preferred time zones (optional)'),
+        const ScoutSectionLabel('Preferred time zones (optional)'),
         ChipsField(
           key: const ValueKey('timezones-field'),
           selected: timezones,
@@ -293,15 +293,15 @@ class ProfileFormFields extends StatelessWidget {
           hint: 'Add a time zone…',
         ),
         const SizedBox(height: 18),
-        const NeuSectionLabel('Portfolio link (optional)'),
-        NeuInput(
+        const ScoutSectionLabel('Portfolio link (optional)'),
+        ScoutInput(
           controller: portfolioController,
           hint: 'https://…',
           keyboardType: TextInputType.url,
         ),
         const SizedBox(height: 18),
-        const NeuSectionLabel('CV link (optional)'),
-        NeuInput(
+        const ScoutSectionLabel('CV link (optional)'),
+        ScoutInput(
           controller: cvController,
           hint: 'Link to your CV (file upload arrives with Supabase in Phase 3)',
           keyboardType: TextInputType.url,

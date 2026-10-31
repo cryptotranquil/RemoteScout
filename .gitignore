@@ -14,7 +14,10 @@ coverage/
 # Backend
 backend/.env
 backend/functions/**/.env
+backend/supabase/.temp/
 
 # Misc
 .DS_Store
 *.log
+*.jks
+*.keystore

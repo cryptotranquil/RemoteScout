@@ -3,14 +3,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../core/theme/neumorphic.dart';
+import '../../core/scoring/match_scorer.dart';
+import '../../core/ui/scout_ui.dart';
 import '../../core/utils/formatters.dart';
 import '../../data/providers.dart';
 import '../../models/models.dart';
 import '../discover/job_card.dart';
 
 /// Full job detail (03_App_Flow.md §4): why it matched, skills, attribution,
-/// and a sticky action bar that always links to the original listing.
+/// and a pinned action bar that always links to the original listing.
 class JobDetailsScreen extends ConsumerWidget {
   const JobDetailsScreen({super.key, required this.jobId});
 
@@ -26,291 +27,555 @@ class JobDetailsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final store = ref.watch(storeProvider);
     final job = store.jobById(jobId);
-    final palette = NeuPalette.of(context);
+    final profile = ref.watch(profileProvider).valueOrNull;
 
     if (job == null) {
       return Scaffold(
         appBar: AppBar(),
-        body: const EmptyState(message: 'This job is no longer available.'),
+        body: const ScoutEmptyState(
+          icon: Icons.search_off,
+          message: 'This job is no longer available.',
+        ),
       );
     }
 
     final match = store.matchForJob(jobId);
-    final profile = ref.watch(profileProvider).valueOrNull;
-    final result = match == null ? liveScore(job, profile) : null;
-    final score = match?.matchScore ?? result?.score ?? 0;
-    final reasons = match?.breakdown ??
-        result?.reasons ??
-        const ['— No scoring data yet'];
-    final matchedSkills = match?.matchedSkills ?? result?.matchedSkills ?? const <String>[];
-    final missingSkills = match?.missingSkills ?? result?.missingSkills ?? const <String>[];
+    final live = match == null ? liveScore(job, profile) : null;
+    final score = match?.matchScore ?? live?.score ?? 0;
+    final reasons = match?.breakdown ?? live?.reasons ?? const <String>[];
+    final matchedSkills =
+        match?.matchedSkills ?? live?.matchedSkills ?? const <String>[];
+    final missingSkills =
+        match?.missingSkills ?? live?.missingSkills ?? const <String>[];
+    final application = store.applicationForJob(job.id);
 
     return Scaffold(
-      body: SafeArea(
-        bottom: false,
-        child: Column(
-          children: [
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
-                children: [
-                  Row(
-                    children: [
-                      NeuIconButton(
-                        icon: Icons.arrow_back,
-                        onPressed: () => context.pop(),
-                        size: 46,
-                        tooltip: 'Back',
-                      ),
-                      const Spacer(),
-                      SourceBadge(source: job.source),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  NeuCard(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: Text(job.title,
-                                  style:
-                                      Theme.of(context).textTheme.headlineSmall),
-                            ),
-                            ScoreRing(score: score, size: 64),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Text(job.company,
-                            style: Theme.of(context).textTheme.titleSmall!.copyWith(
-                                color: palette.textSecondary)),
-                        const SizedBox(height: 14),
-                        Wrap(
-                          spacing: 10,
-                          runSpacing: 10,
-                          children: [
-                            LocationBadge(
-                              scope: job.locationScope.wire,
-                              detail: job.locationText,
-                            ),
-                            _MetaChip(label: job.employmentLabel),
-                            if (job.hasSalary) _MetaChip(label: job.salaryLabel),
-                            _MetaChip(
-                                label: 'Posted ${formatPostedAgo(job.publishedAt)}'),
-                          ],
-                        ),
-                        if (job.isExpiredReported) ...[
-                          const SizedBox(height: 12),
-                          Text(
-                            'You reported this listing as expired — it is kept '
-                            'out of future recommendations.',
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-                  _WhyMatchedCard(reasons: reasons, score: score),
-                  const SizedBox(height: 18),
-                  NeuCard(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const NeuSectionLabel('Required skills'),
-                        if (matchedSkills.isEmpty && missingSkills.isEmpty)
-                          Text('No specific tools named in this listing.',
-                              style: Theme.of(context).textTheme.bodyMedium)
-                        else ...[
-                          Wrap(
-                            children: [
-                              for (final s in matchedSkills) SkillChip(label: s, matched: true),
-                            ],
-                          ),
-                          if (missingSkills.isNotEmpty) ...[
-                            const SizedBox(height: 6),
-                            Text('Not on your profile:',
-                                style: Theme.of(context).textTheme.bodySmall),
-                            const SizedBox(height: 8),
-                            Wrap(
-                              children: [
-                                for (final s in missingSkills)
-                                  SkillChip(label: s, matched: false),
-                              ],
-                            ),
-                          ],
-                        ],
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-                  NeuCard(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const NeuSectionLabel('Source & attribution'),
-                        AttributionLine(job: job),
-                        const SizedBox(height: 12),
-                        Text(
-                          job.description.isEmpty
-                              ? 'No description supplied by the source.'
-                              : job.description,
-                          style: Theme.of(context).textTheme.bodyMedium,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+      body: Column(
+        children: [
+          ScoutAppHeader(
+            title: 'Job details',
+            onBack: () => context.pop(),
+            avatarName: profile?.name,
+          ),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(
+                ScoutSpace.lg,
+                0,
+                ScoutSpace.lg,
+                ScoutSpace.lg,
               ),
+              children: [
+                _RoleCard(job: job),
+                const SizedBox(height: ScoutSpace.md),
+                _WhyMatchedCard(
+                  score: score,
+                  reasons: reasons,
+                  breakdown: live?.breakdown,
+                ),
+                const SizedBox(height: ScoutSpace.md),
+                _SkillsCard(
+                  matched: matchedSkills,
+                  missing: missingSkills,
+                ),
+                const SizedBox(height: ScoutSpace.md),
+                _SourceCard(job: job),
+                if (job.description.isNotEmpty) ...[
+                  const SizedBox(height: ScoutSpace.md),
+                  _DescriptionCard(description: job.description),
+                ],
+                const SizedBox(height: ScoutSpace.md),
+                ScoutNotice(
+                  icon: Icons.privacy_tip_outlined,
+                  child: Text.rich(
+                    TextSpan(
+                      children: [
+                        const TextSpan(
+                          text: 'RemoteScout direct guarantee: ',
+                          style: TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                        TextSpan(
+                          text: job.isExpiredReported
+                              ? 'you reported this listing as expired, so it is '
+                                  'kept out of future recommendations.'
+                              : 'we are strictly your personal filter and '
+                                  'strategy tracker. We never submit applications '
+                                  'on your behalf — you apply directly with the '
+                                  'employer.',
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
-            Container(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
-              decoration: BoxDecoration(
-                color: palette.base,
-                boxShadow: [
-                  BoxShadow(
-                    color: palette.shadow,
-                    blurRadius: 14,
-                    offset: const Offset(0, -5),
-                  ),
-                ],
-              ),
-              child: Column(
-                children: [
-                  NeuButton(
-                    key: const ValueKey('view-listing'),
-                    filled: true,
-                    onPressed: () => _openListing(job),
-                    child: const Text('View Original Listing ↗'),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: NeuButton(
-                          key: const ValueKey('plan-to-apply'),
-                          onPressed: () async {
-                            final app = await store.trackJob(
-                                job.id, ApplicationStatus.planToApply);
-                            await store.saveMatch(
-                                match?.id ?? 'match-${job.id}');
-                            if (context.mounted) {
-                              await context.push('/application/${app.id}');
-                            }
-                          },
-                          child: const Text('Plan to apply'),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      NeuIconButton(
-                        key: const ValueKey('details-save'),
-                        icon: Icons.bookmark_outline,
-                        tooltip: 'Save',
-                        onPressed: match?.isSaved == true
-                            ? null
-                            : () => store.saveMatch(match?.id ?? 'match-${job.id}'),
-                      ),
-                      const SizedBox(width: 8),
-                      NeuIconButton(
-                        key: const ValueKey('details-reject'),
-                        icon: Icons.close,
-                        tooltip: 'Reject',
-                        onPressed: () {
-                          store
-                              .rejectMatch(match?.id ?? 'match-${job.id}')
-                              .then((_) {
-                            if (context.mounted) context.pop();
-                          });
-                        },
-                      ),
-                      const SizedBox(width: 8),
-                      NeuIconButton(
-                        key: const ValueKey('details-report'),
-                        icon: Icons.flag_outlined,
-                        tooltip: 'Report expired',
-                        onPressed: () =>
-                            confirmReportExpired(context, store, job),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
+      ),
+      bottomNavigationBar: _ActionBar(
+        saved: match?.isSaved ?? false,
+        planned: application != null,
+        onPlanToApply: () async {
+          final app = await store.trackJob(
+            job.id,
+            ApplicationStatus.planToApply,
+          );
+          if (match != null) {
+            await store.saveMatch(match.id);
+          }
+          if (context.mounted) {
+            await context.push('/application/${app.id}');
+          }
+        },
+        onSave: match == null || match.isSaved
+            ? null
+            : () => store.saveMatch(match.id),
+        onReportExpired: () => confirmReportExpired(context, store, job),
+        onOpenListing: () => _openListing(job),
       ),
     );
   }
 }
 
-class _MetaChip extends StatelessWidget {
-  const _MetaChip({required this.label});
+class _RoleCard extends StatelessWidget {
+  const _RoleCard({required this.job});
 
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = NeuPalette.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-      decoration: BoxDecoration(
-        color: palette.base,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: palette.raised(blur: 6, distance: 2),
-      ),
-      child: Text(label,
-          style: Theme.of(context)
-              .textTheme
-              .labelSmall!
-              .copyWith(fontWeight: FontWeight.w600)),
-    );
-  }
-}
-
-class _WhyMatchedCard extends StatelessWidget {
-  const _WhyMatchedCard({required this.reasons, required this.score});
-
-  final List<String> reasons;
-  final int score;
+  final Job job;
 
   @override
   Widget build(BuildContext context) {
-    final palette = NeuPalette.of(context);
-    return NeuCard(
+    final colors = ScoutColors.of(context);
+    final text = Theme.of(context).textTheme;
+    return ScoutCard(
+      border: true,
+      padding: const EdgeInsets.all(ScoutSpace.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Expanded(child: NeuSectionLabel('Why this matched')),
-              Text('$score%',
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleSmall!
-                      .copyWith(color: palette.accent)),
+              ScoutBadge(
+                label: job.isExpiredReported ? 'Reported expired' : 'Verified active',
+                tone: job.isExpiredReported
+                    ? ScoutBadgeTone.warning
+                    : ScoutBadgeTone.tonal,
+                icon: job.isExpiredReported ? Icons.flag_outlined : null,
+              ),
+              const SizedBox(width: ScoutSpace.xs + 2),
+              Expanded(
+                child: Text(
+                  'Discovered ${formatShortAgo(job.collectedAt)}',
+                  style: text.labelSmall,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              ScoutSourceBadge(source: job.source),
             ],
           ),
+          const SizedBox(height: ScoutSpace.sm),
+          Text(job.title, style: text.titleLarge),
+          const SizedBox(height: ScoutSpace.xs),
+          Wrap(
+            spacing: 6,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              Text(job.company, style: text.titleSmall),
+              Text('•', style: text.bodySmall),
+              Text(job.employmentLabel, style: text.bodySmall),
+              Text('•', style: text.bodySmall),
+              Text(job.locationText, style: text.bodySmall),
+            ],
+          ),
+          const SizedBox(height: ScoutSpace.sm),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(ScoutSpace.md),
+            decoration: BoxDecoration(
+              color: colors.surfaceLow,
+              borderRadius: BorderRadius.circular(ScoutRadius.md),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.payments_outlined,
+                        size: 18, color: colors.primary),
+                    const SizedBox(width: ScoutSpace.sm),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const ScoutSectionLabel('Target compensation'),
+                          Text(
+                            formatSalaryFull(job),
+                            style: text.titleSmall,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: ScoutSpace.sm),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.public, size: 18, color: colors.primary),
+                    const SizedBox(width: ScoutSpace.sm),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const ScoutSectionLabel('Location policy'),
+                          Text(
+                            switch (job.locationScope) {
+                              LocationScope.worldwide =>
+                                '${job.locationText} • any timezone',
+                              LocationScope.regionRestricted =>
+                                '${job.locationText} • region restricted',
+                              LocationScope.countryRestricted =>
+                                '${job.locationText} • country restricted',
+                            },
+                            style: text.bodyMedium,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _WhyMatchedCard extends StatelessWidget {
+  const _WhyMatchedCard({
+    required this.score,
+    required this.reasons,
+    this.breakdown,
+  });
+
+  final int score;
+  final List<String> reasons;
+  final ScoreBreakdown? breakdown;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = ScoutColors.of(context);
+    final text = Theme.of(context).textTheme;
+    return ScoutCard(
+      border: true,
+      padding: const EdgeInsets.all(ScoutSpace.lg),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.auto_awesome, size: 20, color: colors.primary),
+              const SizedBox(width: ScoutSpace.sm),
+              Expanded(
+                child: Text('Why this matched', style: text.titleMedium),
+              ),
+              ScoutBadge(
+                label: '$score% Match',
+                tone: ScoutBadgeTone.info,
+                icon: Icons.verified_outlined,
+              ),
+            ],
+          ),
+          const SizedBox(height: ScoutSpace.md),
           for (final reason in reasons)
             Padding(
-              padding: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.only(bottom: ScoutSpace.sm),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Icon(
+                    reason.startsWith('✓')
+                        ? Icons.check_circle_outline
+                        : Icons.warning_amber_rounded,
+                    size: 17,
+                    color: reason.startsWith('✓')
+                        ? colors.primary
+                        : colors.tertiary,
+                  ),
+                  const SizedBox(width: ScoutSpace.sm),
                   Expanded(
-                    child: Text(reason,
-                        style: Theme.of(context).textTheme.bodyMedium),
+                    child: Text(
+                      reason.replaceFirst(RegExp(r'^(✓|—)\s*'), ''),
+                      style: text.bodySmall!.copyWith(
+                        color: reason.startsWith('✓')
+                            ? colors.onSurface
+                            : colors.muted,
+                      ),
+                    ),
                   ),
                 ],
               ),
             ),
-          const SizedBox(height: 4),
+          if (breakdown != null) ...[
+            const SizedBox(height: ScoutSpace.xs),
+            Text(
+              'Scoring: skills ${breakdown!.skill}/40 · title ${breakdown!.title}/25 '
+              '· location ${breakdown!.location}/20 · experience '
+              '${breakdown!.experience}/10 · freshness ${breakdown!.freshness}/5',
+              style: text.labelSmall,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _SkillsCard extends StatelessWidget {
+  const _SkillsCard({required this.matched, required this.missing});
+
+  final List<String> matched;
+  final List<String> missing;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = ScoutColors.of(context);
+    final text = Theme.of(context).textTheme;
+    return ScoutCard(
+      border: true,
+      padding: const EdgeInsets.all(ScoutSpace.lg),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.analytics_outlined, size: 20, color: colors.primary),
+              const SizedBox(width: ScoutSpace.sm),
+              Expanded(
+                child: Text('Skills assessment', style: text.titleMedium),
+              ),
+              Text('Profile sync', style: text.labelSmall),
+            ],
+          ),
+          const SizedBox(height: ScoutSpace.md),
+          ScoutSectionLabel('Validated in your profile (${matched.length})'),
+          const SizedBox(height: ScoutSpace.sm),
+          if (matched.isEmpty)
+            Text('No listed tools on your profile matched.',
+                style: text.bodySmall)
+          else
+            Wrap(
+              children: [
+                for (final skill in matched)
+                  ScoutSkillChip(label: skill, matched: true),
+              ],
+            ),
+          const SizedBox(height: ScoutSpace.md),
+          ScoutSectionLabel(
+            'Unverified or missing mentions (${missing.length})',
+          ),
+          const SizedBox(height: ScoutSpace.sm),
+          if (missing.isEmpty)
+            Text('The listing names no tools missing from your profile.',
+                style: text.bodySmall)
+          else
+            Wrap(
+              children: [
+                for (final skill in missing)
+                  ScoutSkillChip(label: skill, matched: false),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SourceCard extends StatelessWidget {
+  const _SourceCard({required this.job});
+
+  final Job job;
+
+  String get _attribution {
+    switch (job.source) {
+      case 'remotive':
+        return 'Remotive job board';
+      case 'remoteok':
+        return 'Remote OK feed';
+      case 'manual':
+        return 'Added manually by you';
+      default:
+        return job.source;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = ScoutColors.of(context);
+    final text = Theme.of(context).textTheme;
+    return Container(
+      padding: const EdgeInsets.all(ScoutSpace.md),
+      decoration: BoxDecoration(
+        color: colors.surfaceLow,
+        borderRadius: BorderRadius.circular(ScoutRadius.md),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.link, size: 16, color: colors.primary),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  _attribution,
+                  style: text.labelMedium!.copyWith(color: colors.onSurface),
+                ),
+              ),
+              Text(
+                job.source == 'manual' ? 'no intermediary' : 'direct source',
+                style: text.labelMedium!.copyWith(color: colors.primary),
+              ),
+            ],
+          ),
+          const SizedBox(height: ScoutSpace.xs),
           Text(
-            'Scoring: skills 40 · title 25 · location 20 · experience 10 · freshness 5',
-            style: Theme.of(context).textTheme.labelSmall,
+            'Last checked ${formatShortAgo(job.collectedAt)}. Always linked '
+            'back to the original listing — RemoteScout never proxies your '
+            'application.',
+            style: text.bodySmall,
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _DescriptionCard extends StatelessWidget {
+  const _DescriptionCard({required this.description});
+
+  final String description;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = ScoutColors.of(context);
+    final text = Theme.of(context).textTheme;
+    return ScoutCard(
+      border: true,
+      padding: const EdgeInsets.all(ScoutSpace.lg),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('About the listing', style: text.titleMedium),
+          const SizedBox(height: ScoutSpace.sm),
+          Text(
+            description,
+            style: text.bodyMedium!.copyWith(color: colors.muted),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ActionBar extends StatelessWidget {
+  const _ActionBar({
+    required this.saved,
+    required this.planned,
+    required this.onPlanToApply,
+    required this.onSave,
+    required this.onReportExpired,
+    required this.onOpenListing,
+  });
+
+  final bool saved;
+  final bool planned;
+  final VoidCallback onPlanToApply;
+  final VoidCallback? onSave;
+  final VoidCallback onReportExpired;
+  final VoidCallback onOpenListing;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = ScoutColors.of(context);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: colors.card,
+        border: Border(top: BorderSide(color: colors.outlineVariant)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(
+            ScoutSpace.lg,
+            ScoutSpace.sm,
+            ScoutSpace.lg,
+            ScoutSpace.sm,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: ScoutButton(
+                      key: const ValueKey('plan-to-apply'),
+                      label: planned ? 'In your tracker' : 'Plan to apply',
+                      icon: Icons.event_available,
+                      expand: true,
+                      onPressed: onPlanToApply,
+                    ),
+                  ),
+                  const SizedBox(width: ScoutSpace.sm),
+                  ScoutIconButton(
+                    key: const ValueKey('details-save'),
+                    icon: saved ? Icons.bookmark : Icons.bookmark_outline,
+                    tooltip: saved ? 'Saved' : 'Save',
+                    filled: saved,
+                    onPressed: onSave,
+                  ),
+                  const SizedBox(width: ScoutSpace.sm),
+                  ScoutIconButton(
+                    key: const ValueKey('details-report'),
+                    icon: Icons.flag_outlined,
+                    tooltip: 'Report expired',
+                    onPressed: onReportExpired,
+                  ),
+                ],
+              ),
+              const SizedBox(height: ScoutSpace.sm),
+              SizedBox(
+                width: double.infinity,
+                height: 36,
+                child: TextButton(
+                  key: const ValueKey('view-listing'),
+                  onPressed: onOpenListing,
+                  style: TextButton.styleFrom(
+                    backgroundColor: colors.surfaceLow,
+                    foregroundColor: colors.onSurface,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(ScoutRadius.md),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'View original listing',
+                        style: Theme.of(context).textTheme.labelMedium,
+                      ),
+                      const SizedBox(width: 4),
+                      Icon(Icons.north_east, size: 14, color: colors.muted),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

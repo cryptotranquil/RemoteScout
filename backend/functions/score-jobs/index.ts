@@ -6,8 +6,12 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { scoreJob } from "../_shared/scoring.ts";
+import { handlePostRequest, jsonResponse } from "../_shared/http.ts";
 
 Deno.serve(async (req) => {
+  const response = handlePostRequest(req);
+  if (response) return response;
+
   try {
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -76,28 +80,22 @@ Deno.serve(async (req) => {
 
         const { error: upsertError } = previous
           ? await supabase.from("job_matches").update({
-              match_score: row.match_score,
-              matched_skills: row.matched_skills,
-              missing_skills: row.missing_skills,
-              match_reason: row.match_reason,
-            }).eq("id", previous.id)
+            match_score: row.match_score,
+            matched_skills: row.matched_skills,
+            missing_skills: row.missing_skills,
+            match_reason: row.match_reason,
+          }).eq("id", previous.id)
           : await supabase.from("job_matches").upsert(row, {
-              onConflict: "user_id,job_id",
-              ignoreDuplicates: true,
-            });
+            onConflict: "user_id,job_id",
+            ignoreDuplicates: true,
+          });
         if (upsertError) throw upsertError;
         scored++;
       }
     }
 
-    return new Response(
-      JSON.stringify({ scored }),
-      { headers: { "Content-Type": "application/json" } },
-    );
+    return jsonResponse({ scored });
   } catch (e) {
-    return new Response(JSON.stringify({ error: String(e) }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+    return jsonResponse({ error: String(e) }, 500);
   }
 });

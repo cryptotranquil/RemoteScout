@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import 'core/theme/app_theme.dart';
+import 'core/theme/theme_mode.dart';
+import 'data/push_notifications.dart';
 import 'data/providers.dart';
 import 'router.dart';
 
@@ -15,11 +18,17 @@ class RemoteScoutApp extends ConsumerStatefulWidget {
 
 class _RemoteScoutAppState extends ConsumerState<RemoteScoutApp> {
   late final AppRouterRefresh _refresh;
+  late final GoRouter _router;
 
   @override
   void initState() {
     super.initState();
     _refresh = AppRouterRefresh(ref.read(storeProvider));
+    _router = buildRouter(
+      _refresh,
+      initialLocation: pushNotificationService?.initialRoute,
+    );
+    pushNotificationService?.onRoute = _router.go;
   }
 
   @override
@@ -35,8 +44,8 @@ class _RemoteScoutAppState extends ConsumerState<RemoteScoutApp> {
       debugShowCheckedModeBanner: false,
       theme: buildAppTheme(Brightness.light),
       darkTheme: buildAppTheme(Brightness.dark),
-      themeMode: ThemeMode.system,
-      routerConfig: buildRouter(_refresh),
+      themeMode: ref.watch(themeModeProvider),
+      routerConfig: _router,
     );
   }
 }
