@@ -4,8 +4,31 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+val defaultApplicationId = "com.praisekajawa.remotescout"
+val configuredApplicationId = providers.gradleProperty("APPLICATION_ID").orElse(
+    providers.environmentVariable("APPLICATION_ID"),
+).orElse(defaultApplicationId).get()
+val releaseStoreFile = providers.gradleProperty("RELEASE_STORE_FILE").orElse(
+    providers.environmentVariable("RELEASE_STORE_FILE"),
+).orNull
+val releaseStorePassword = providers.gradleProperty("RELEASE_STORE_PASSWORD").orElse(
+    providers.environmentVariable("RELEASE_STORE_PASSWORD"),
+).orNull
+val releaseKeyAlias = providers.gradleProperty("RELEASE_KEY_ALIAS").orElse(
+    providers.environmentVariable("RELEASE_KEY_ALIAS"),
+).orNull
+val releaseKeyPassword = providers.gradleProperty("RELEASE_KEY_PASSWORD").orElse(
+    providers.environmentVariable("RELEASE_KEY_PASSWORD"),
+).orNull
+val hasReleaseSigning = listOf(
+    releaseStoreFile,
+    releaseStorePassword,
+    releaseKeyAlias,
+    releaseKeyPassword,
+).all { !it.isNullOrBlank() }
+
 android {
-    namespace = "com.example.remotescout"
+    namespace = defaultApplicationId
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -15,8 +38,7 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.remotescout"
+        applicationId = configuredApplicationId
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
@@ -29,12 +51,46 @@ android {
         versionName = flutter.versionName
     }
 
+    if (hasReleaseSigning) {
+        signingConfigs {
+            create("release") {
+                storeFile = file(releaseStoreFile!!)
+                storePassword = releaseStorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = if (hasReleaseSigning) {
+                signingConfigs.getByName("release")
+            } else {
+                null
+            }
         }
+    }
+}
+
+tasks.register("validateReleaseConfiguration") {
+    doLast {
+        check(
+            configuredApplicationId.matches(
+                Regex("""^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$"""),
+            ),
+        ) {
+            "APPLICATION_ID must be a lowercase, reverse-domain Android package name."
+        }
+        check(hasReleaseSigning) {
+            "Set RELEASE_STORE_FILE, RELEASE_STORE_PASSWORD, RELEASE_KEY_ALIAS, and RELEASE_KEY_PASSWORD before building a release."
+        }
+    }
+}
+
+tasks.configureEach {
+    if (name == "assembleRelease" || name == "bundleRelease") {
+        dependsOn("validateReleaseConfiguration")
     }
 }
 
