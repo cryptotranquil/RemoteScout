@@ -8,7 +8,7 @@ import 'data/push_notifications.dart';
 import 'data/providers.dart';
 import 'router.dart';
 
-/// RemoteScout — personal remote-job discovery and application assistant.
+/// JobRadar — personal remote-job discovery and application assistant.
 class RemoteScoutApp extends ConsumerStatefulWidget {
   const RemoteScoutApp({super.key});
 
@@ -40,7 +40,7 @@ class _RemoteScoutAppState extends ConsumerState<RemoteScoutApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
-      title: 'RemoteScout',
+      title: 'JobRadar',
       debugShowCheckedModeBanner: false,
       theme: buildAppTheme(Brightness.light),
       darkTheme: buildAppTheme(Brightness.dark),

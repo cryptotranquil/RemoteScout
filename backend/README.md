@@ -13,7 +13,7 @@ backend/
     rls.sql           Row Level Security policies (every user-scoped table)
   functions/
     _shared/
-      normalizers.ts  Remotive + Remote OK → shared jobs shape, dedup keys
+      normalizers.ts  Source-specific job mapping and dedup keys
       scoring.ts      rule-based scorer (mirror of lib/core/scoring/match_scorer.dart)
     fetch-jobs/       cron: pull sources → normalize → dedup → upsert
     score-jobs/       cron: score against profiles → upsert job_matches
@@ -78,6 +78,94 @@ The Flutter app talks to this backend through `lib/data/supabase/synced_store.da
 
 Enable **anonymous sign-ins** in Dashboard → Authentication → Providers for
 the single-user MVP (or swap `ensureSignedIn()` for your preferred method).
+
+### Job sources
+
+The fetch worker uses the Remotive and Remote OK feeds, the public Himalayas
+Jobs API (`https://himalayas.app/jobs/api?limit=20`), Jobicy's public jobs API
+(`https://jobicy.com/api/v2/remote-jobs`), Arbeitnow, Adzuna, Jooble, The Muse,
+Findwork.dev, and the We Work Remotely RSS feed. Each source is fetched and
+normalized independently; a failure is reported in the worker response and
+does not stop other sources. New sources are filtered conservatively to jobs
+explicitly marked worldwide/anywhere. It fetches up to five cursor pages per
+run from the paginated sources.
+Himalayas permits displaying its listings in apps under its API terms; the
+app links to each Himalayas listing, keeps its `applicationLink` unchanged,
+and excludes restricted or expired listings. Review the current
+[Himalayas API documentation](https://himalayas.app/api) before deployment.
+Jobicy is requested with `geo=anywhere`, and listings are checked for a
+worldwide location before ingestion. The public API needs no key; its
+[documentation](https://jobi.cy/apidocs) requires clear Jobicy credit and
+linking to its listing, which the app displays and opens from job details.
+
+Adzuna is queried across a fixed set of country endpoints and then filtered
+for explicit worldwide eligibility; this may return few results. The Muse's
+public API may be unavailable from some environments. If a provider rejects
+its request, that source reports its own error and the other sources continue.
+
+Set these as Supabase Edge Function secrets (never as GitHub APK-build
+secrets or Flutter `--dart-define` values):
+
+```bash
+npx supabase secrets set ADZUNA_APP_ID=... ADZUNA_APP_KEY=... JOOBLE_API_KEY=... FINDWORK_API_KEY=... --project-ref YOUR_PROJECT_REF
+```
+
+Adzuna, Jooble, and Findwork.dev require credentials; Arbeitnow, The Muse,
+Himalayas, Jobicy, Remotive, Remote OK, and We Work Remotely need no key.
+Missing or rejected credentials only disable that source for the run.
+We Work Remotely is fetched from its RSS feed with a named user agent and only
+explicit worldwide listings are ingested.
+
+Tier 3 crawling has not been enabled after checking each site's robots.txt,
+terms, and public listing/sitemap format. The project owner reports written
+permission for all four sites; keep that permission on file for deployment.
+
+- [Remote4Africa](https://remote4africa.com/robots.txt) allows crawling in
+  robots.txt, but its [terms](https://remote4africa.com/terms) prohibit
+  copying or aggregating its content without express written consent.
+- [RemoteJobs.io](https://www.remotejobs.io/robots.txt) exposes public pages,
+  but its [terms](https://www.remotejobs.io/terms-of-service) limit job-seeker
+  use to personal, non-commercial purposes and prohibit sharing, copying, or
+  aggregating content without prior written consent.
+- [Dynamite Jobs](https://www.dynamitejobs.com/robots.txt) publishes job
+  sitemaps, but the inspected listing page had no `JobPosting` JSON-LD and
+  the sitemap did not provide the required location field. Its general terms
+  do not spell out a listing-republication license; the reported written
+  permission is relied on for authorization.
+- [JustRemote](https://justremote.co/robots.txt) allows public paths but
+  disallows several private paths. The inspected listings had no
+  `JobPosting` JSON-LD, the conventional sitemap URLs were unavailable, and
+  its [terms](https://justremote.co/terms) grant limited access to protected
+  materials; the reported written permission is relied on for authorization.
+
+The Tier 3 implementation remains JSON-LD-only as requested. Do not infer
+worldwide eligibility from a generic "remote" label; enable a source only
+when its public structured data provides a `JobPosting` with the required
+title, company, location, date, and link fields. If a structured feed becomes
+available, keep each crawler isolated, limited to one request per second,
+use a descriptive user agent, and retain only those fields with a link back
+to the original listing.
+
+Jobspresso is not ingested: its current terms prohibit copying, public display,
+transfer, and mirroring without permission. The other requested sites that do
+not have a verified public API/feed and redistribution permission remain
+unfetched; do not scrape login-gated or anti-bot-protected pages. Google Jobs
+is not an ingestible public API, and Kaggle Jobs has been discontinued.
+
+When upgrading an existing Supabase project, run the migrations in order:
+`supabase/migrations/20261101000000_add_himalayas_source.sql`,
+`supabase/migrations/20261101093000_add_jobicy_source.sql`,
+`supabase/migrations/20261101094500_add_tier1_sources.sql`, and
+`supabase/migrations/20261101100000_add_weworkremotely_source.sql` before
+deploying the updated fetch worker. New projects get all source constraints
+from `supabase/schema.sql`.
+
+For GitHub Actions release builds, add repository Actions secrets named
+`SUPABASE_URL` and `SUPABASE_ANON_KEY`. The Android release workflow passes
+these values into both APK and AAB builds and fails early if either is
+missing, rather than silently producing a local-only release. The anon key is
+intended for client builds and must remain protected by RLS; never use the
+service-role key here.
 
 ## Mobile push setup
 

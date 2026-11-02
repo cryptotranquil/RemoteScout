@@ -7,6 +7,7 @@ import '../../core/utils/formatters.dart';
 import '../../data/providers.dart';
 import '../../models/models.dart';
 import 'job_card.dart';
+import 'search_on_sites.dart';
 
 /// "Today's Recommendations" — a short ranked list, not a feed (PRD §6.2).
 class DiscoverScreen extends ConsumerStatefulWidget {
@@ -41,7 +42,10 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
   Future<void> _refresh() async {
     setState(() => _refreshing = true);
     try {
-      await refreshScout(ref);
+      final errors = await refreshScout(ref);
+      if (mounted && errors.isNotEmpty) {
+        showFeedRefreshFeedback(context, errors);
+      }
     } finally {
       if (mounted) setState(() => _refreshing = false);
     }
@@ -72,6 +76,9 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
       ..sort();
 
     final roles = (profile?.targetRoles ?? const <String>[]).take(2).toList();
+    final initialSearchKeywords = profile?.targetRoles.isNotEmpty == true
+        ? profile!.targetRoles.first
+        : '';
 
     return Scaffold(
       body: Column(
@@ -129,6 +136,7 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
                       style: text.bodySmall,
                     ),
                     const SizedBox(height: ScoutSpace.md),
+                    SearchOnSites(initialKeywords: initialSearchKeywords),
                     SizedBox(
                       height: 34,
                       child: ListView(
@@ -230,6 +238,22 @@ String _sourceName(String source) {
       return 'Remotive';
     case 'remoteok':
       return 'Remote OK';
+    case 'himalayas':
+      return 'Himalayas';
+    case 'jobicy':
+      return 'Jobicy';
+    case 'arbeitnow':
+      return 'Arbeitnow';
+    case 'adzuna':
+      return 'Adzuna';
+    case 'jooble':
+      return 'Jooble';
+    case 'themuse':
+      return 'The Muse';
+    case 'findwork':
+      return 'Findwork';
+    case 'weworkremotely':
+      return 'We Work Remotely';
     case 'manual':
       return 'Manual';
     default:

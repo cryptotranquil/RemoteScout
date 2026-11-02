@@ -137,8 +137,8 @@ class _ApplicationsScreenState extends ConsumerState<ApplicationsScreen> {
                                 card.application.followUpAt ?? DateTime.now(),
                             firstDate: DateTime.now()
                                 .subtract(const Duration(days: 30)),
-                            lastDate: DateTime.now()
-                                .add(const Duration(days: 120)),
+                            lastDate:
+                                DateTime.now().add(const Duration(days: 120)),
                           );
                           if (picked == null) return;
                           await store.updateApplication(
@@ -146,8 +146,8 @@ class _ApplicationsScreenState extends ConsumerState<ApplicationsScreen> {
                           );
                         },
                         onMarkSent: (card) async {
-                          final next = DateTime.now()
-                              .add(const Duration(days: 7));
+                          final next =
+                              DateTime.now().add(const Duration(days: 7));
                           await store.updateApplication(
                             card.application.copyWith(followUpAt: next),
                           );
@@ -172,7 +172,8 @@ class _ApplicationsScreenState extends ConsumerState<ApplicationsScreen> {
                         Expanded(
                           child: Text('Applications', style: text.titleSmall),
                         ),
-                        Text('Sorted by next milestone', style: text.labelSmall),
+                        Text('Sorted by next milestone',
+                            style: text.labelSmall),
                       ],
                     ),
                     const SizedBox(height: ScoutSpace.sm),
@@ -191,8 +192,8 @@ class _ApplicationsScreenState extends ConsumerState<ApplicationsScreen> {
                         _ApplicationCard(
                           key: ValueKey('app-${card.application.id}'),
                           card: card,
-                          onOpen: () =>
-                              context.push('/application/${card.application.id}'),
+                          onOpen: () => context
+                              .push('/application/${card.application.id}'),
                           onPrimaryAction: () => _primaryAction(card, store),
                         ),
                         const SizedBox(height: ScoutSpace.sm),
@@ -219,7 +220,7 @@ class _ApplicationsScreenState extends ConsumerState<ApplicationsScreen> {
                           style: text.bodySmall,
                         ),
                         Text(
-                          'RemoteScout never submits an application for you',
+                          'JobRadar never submits an application for you',
                           style: text.labelSmall,
                         ),
                       ],
@@ -247,7 +248,8 @@ class _ApplicationsScreenState extends ConsumerState<ApplicationsScreen> {
         await store.updateApplication(
           application.copyWith(
             status: ApplicationStatus.closed,
-            notes: '${application.notes ?? ''}${application.notes == null ? '' : ' · '}Offer accepted',
+            notes:
+                '${application.notes ?? ''}${application.notes == null ? '' : ' · '}Offer accepted',
           ),
         );
       case ApplicationStatus.rejected:
@@ -453,10 +455,10 @@ class _FunnelPanel extends StatelessWidget {
     final interviewRate = total == 0
         ? 0
         : (((counts[ApplicationStatus.interview] ?? 0) +
-                        (counts[ApplicationStatus.offer] ?? 0)) /
-                    total *
-                    100)
-                .round();
+                    (counts[ApplicationStatus.offer] ?? 0)) /
+                total *
+                100)
+            .round();
 
     return ScoutCard(
       child: Column(
@@ -657,8 +659,7 @@ class _ApplicationCard extends StatelessWidget {
             const SizedBox(height: ScoutSpace.sm),
             Row(
               children: [
-                Icon(Icons.payments_outlined,
-                    size: 15, color: colors.muted),
+                Icon(Icons.payments_outlined, size: 15, color: colors.muted),
                 const SizedBox(width: 4),
                 Expanded(
                   child: Text(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_html/flutter_html.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -91,7 +92,7 @@ class JobDetailsScreen extends ConsumerWidget {
                     TextSpan(
                       children: [
                         const TextSpan(
-                          text: 'RemoteScout direct guarantee: ',
+                          text: 'JobRadar direct guarantee: ',
                           style: TextStyle(fontWeight: FontWeight.w700),
                         ),
                         TextSpan(
@@ -155,7 +156,9 @@ class _RoleCard extends StatelessWidget {
           Row(
             children: [
               ScoutBadge(
-                label: job.isExpiredReported ? 'Reported expired' : 'Verified active',
+                label: job.isExpiredReported
+                    ? 'Reported expired'
+                    : 'Verified active',
                 tone: job.isExpiredReported
                     ? ScoutBadgeTone.warning
                     : ScoutBadgeTone.tonal,
@@ -405,6 +408,22 @@ class _SourceCard extends StatelessWidget {
         return 'Remotive job board';
       case 'remoteok':
         return 'Remote OK feed';
+      case 'himalayas':
+        return 'Himalayas job listing';
+      case 'jobicy':
+        return 'Jobicy job listing';
+      case 'arbeitnow':
+        return 'Arbeitnow job listing';
+      case 'adzuna':
+        return 'Adzuna job listing';
+      case 'jooble':
+        return 'Jooble job listing';
+      case 'themuse':
+        return 'The Muse job listing';
+      case 'findwork':
+        return 'Findwork job listing';
+      case 'weworkremotely':
+        return 'We Work Remotely job listing';
       case 'manual':
         return 'Added manually by you';
       default:
@@ -425,32 +444,54 @@ class _SourceCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Icon(Icons.link, size: 16, color: colors.primary),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  _attribution,
-                  style: text.labelMedium!.copyWith(color: colors.onSurface),
+          InkWell(
+            onTap: job.source == 'manual' ? null : () => _openSource(context),
+            child: Row(
+              children: [
+                Icon(Icons.open_in_new, size: 16, color: colors.primary),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    _attribution,
+                    style: text.labelMedium!.copyWith(
+                      color: job.source == 'manual'
+                          ? colors.onSurface
+                          : colors.primary,
+                      decoration: job.source == 'manual'
+                          ? TextDecoration.none
+                          : TextDecoration.underline,
+                    ),
+                  ),
                 ),
-              ),
-              Text(
-                job.source == 'manual' ? 'no intermediary' : 'direct source',
-                style: text.labelMedium!.copyWith(color: colors.primary),
-              ),
-            ],
+                Text(
+                  job.source == 'manual' ? 'no intermediary' : 'view source',
+                  style: text.labelMedium!.copyWith(color: colors.primary),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: ScoutSpace.xs),
           Text(
             'Last checked ${formatShortAgo(job.collectedAt)}. Always linked '
-            'back to the original listing — RemoteScout never proxies your '
+            'back to the original listing — JobRadar never proxies your '
             'application.',
             style: text.bodySmall,
           ),
         ],
       ),
     );
+  }
+
+  Future<void> _openSource(BuildContext context) async {
+    final uri = Uri.tryParse(job.sourceUrl);
+    if (uri == null ||
+        !await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not open the original listing.')),
+        );
+      }
+    }
   }
 }
 
@@ -471,9 +512,35 @@ class _DescriptionCard extends StatelessWidget {
         children: [
           Text('About the listing', style: text.titleMedium),
           const SizedBox(height: ScoutSpace.sm),
-          Text(
-            description,
-            style: text.bodyMedium!.copyWith(color: colors.muted),
+          Html(
+            data: description,
+            style: {
+              'body': Style(
+                color: colors.muted,
+                fontFamily: text.bodyMedium!.fontFamily,
+                fontSize: FontSize(text.bodyMedium!.fontSize!),
+                lineHeight: LineHeight(text.bodyMedium!.height ?? 1.5),
+              ),
+              'a': Style(
+                color: colors.primary,
+                textDecoration: TextDecoration.underline,
+              ),
+            },
+            onLinkTap: (url, _, __) async {
+              final uri = Uri.tryParse(url ?? '');
+              if (uri == null ||
+                  (uri.scheme != 'http' && uri.scheme != 'https')) {
+                return;
+              }
+              if (!await launchUrl(uri, mode: LaunchMode.externalApplication) &&
+                  context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Could not open the description link.'),
+                  ),
+                );
+              }
+            },
           ),
         ],
       ),

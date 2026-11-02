@@ -230,7 +230,10 @@ class LocalStore implements AppStore {
   }
 
   @override
-  Future<void> refresh() => rescore();
+  Future<List<String>> refresh() async {
+    await rescore();
+    return const [];
+  }
 
   @override
   Future<void> markSeen(String matchId) async {

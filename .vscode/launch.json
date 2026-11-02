@@ -1,0 +1,15 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Flutter (Live Supabase)",
+      "type": "dart",
+      "request": "launch",
+      "program": "lib/main.dart",
+      "args": [
+        "--dart-define=SUPABASE_URL=https://ynecbuiuopisddgnatjn.supabase.co",
+        "--dart-define=SUPABASE_ANON_KEY=sb_publishable_o8laJrb_u2-UYH_vReOdnQ_9H-x-ivt"
+      ]
+    }
+  ]
+}

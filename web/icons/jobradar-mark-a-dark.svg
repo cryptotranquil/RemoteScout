@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 240 240" role="img" aria-label="JobRadar scope mark, dark tile">
+  <rect width="240" height="240" rx="53" fill="#141B2B"/>
+  <g stroke="#A0F0F0" fill="none" stroke-width="18">
+    <circle cx="120" cy="120" r="86"/>
+  </g>
+  <path d="M120 120L157.7 42.7A86 86 0 0 1 195.9 79.6Z" fill="#A0F0F0"/>
+  <rect x="54.4" y="131.5" width="26" height="26" fill="#A0F0F0"/>
+</svg>

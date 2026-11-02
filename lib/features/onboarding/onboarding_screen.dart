@@ -429,7 +429,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(
-                          'Your data stays on device. RemoteScout never contacts '
+                          'Your data stays on device. JobRadar never contacts '
                           'recruiters without your explicit action.',
                           style: text.labelSmall,
                         ),

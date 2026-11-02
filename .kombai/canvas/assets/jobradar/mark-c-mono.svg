@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 240 240" role="img" aria-label="JobRadar reticle mark, monochrome">
+  <g stroke="#141B2B" fill="none" stroke-width="18" stroke-linejoin="miter">
+    <path d="M97 41H41V97"/>
+    <path d="M143 41H199V97"/>
+    <path d="M41 143V199H97"/>
+    <path d="M199 143V199H143"/>
+  </g>
+  <rect x="94" y="94" width="52" height="52" fill="#141B2B"/>
+</svg>

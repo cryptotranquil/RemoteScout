@@ -52,7 +52,7 @@ void main() {
     await tester.pumpWidget(const ProviderScope(child: RemoteScoutApp()));
     await _settle(tester);
 
-    expect(find.text('RemoteScout'), findsOneWidget);
+    expect(find.text('JobRadar'), findsOneWidget);
     expect(find.text('Get started'), findsOneWidget);
 
     await tester.tap(find.text('Get started'));
@@ -70,7 +70,7 @@ void main() {
     );
     await tester.pump();
 
-    expect(find.text('RemoteScout'), findsOneWidget);
+    expect(find.text('JobRadar'), findsOneWidget);
     expect(find.text('Get started'), findsOneWidget);
     expect(tester.takeException(), isNull);
 
@@ -138,6 +138,66 @@ void main() {
 
     expect(find.text('Saved jobs'), findsOneWidget);
     expect(find.text('Batch actions'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('job details render HTML descriptions', (tester) async {
+    final original = appStore.jobById('mock-01')!;
+    final htmlJob = Job(
+      id: original.id,
+      externalId: original.externalId,
+      source: original.source,
+      title: original.title,
+      company: original.company,
+      description: '<h2>Responsibilities</h2>'
+          '<p>Build <strong>useful</strong> reports.</p>'
+          '<ul><li>Analyze data</li></ul>',
+      applyUrl: original.applyUrl,
+      sourceUrl: original.sourceUrl,
+      locationText: original.locationText,
+      locationScope: original.locationScope,
+      salaryMin: original.salaryMin,
+      salaryMax: original.salaryMax,
+      currency: original.currency,
+      employmentType: original.employmentType,
+      publishedAt: original.publishedAt,
+      collectedAt: original.collectedAt,
+      expiresAt: original.expiresAt,
+      isExpiredReported: original.isExpiredReported,
+    );
+    await tester.runAsync(() async {
+      await appStore.addJob(htmlJob);
+      await appStore.setOnboarded();
+    });
+    addTearDown(() async {
+      await tester.runAsync(() => appStore.addJob(original));
+    });
+
+    await tester.pumpWidget(const ProviderScope(child: RemoteScoutApp()));
+    for (var i = 0; i < 6; i++) {
+      await tester.pump(const Duration(milliseconds: 120));
+    }
+
+    final detailsButton = find.byKey(const ValueKey('open-mock-01'));
+    await tester.ensureVisible(detailsButton);
+    await tester.tap(detailsButton);
+    for (var i = 0; i < 6; i++) {
+      await tester.pump(const Duration(milliseconds: 120));
+    }
+
+    await tester.scrollUntilVisible(
+      find.text('About the listing'),
+      300,
+      scrollable: find.byType(Scrollable).last,
+    );
+
+    expect(find.text('Responsibilities', findRichText: true), findsOneWidget);
+    expect(
+      find.text('Build useful reports.', findRichText: true),
+      findsOneWidget,
+    );
+    expect(find.text('Analyze data', findRichText: true), findsOneWidget);
+    expect(find.text('<h2>Responsibilities</h2>'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 }

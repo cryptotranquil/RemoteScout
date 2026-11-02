@@ -36,7 +36,7 @@ Future<void> main() async {
         final timeZone = await PushNotificationService.currentTimeZone();
         await synced.savePrefs(synced.prefs.copyWith(timeZone: timeZone));
       } catch (e) {
-        debugPrint('RemoteScout: could not refresh device time zone — $e');
+        debugPrint('JobRadar: could not refresh device time zone — $e');
       }
       store = synced;
       if (Env.isFirebaseConfigured) {
@@ -44,14 +44,14 @@ Future<void> main() async {
           pushNotificationService =
               await PushNotificationService.configure(client);
         } catch (e) {
-          debugPrint('RemoteScout: push notifications unavailable — $e');
+          debugPrint('JobRadar: push notifications unavailable — $e');
         }
       }
       // Pull fresh scored listings in the background — the UI is already up.
       unawaited(synced.refresh());
     } catch (e) {
       // Backend unreachable at boot: keep serving the local cache (TRD §7).
-      debugPrint('RemoteScout: Supabase unavailable, staying local — $e');
+      debugPrint('JobRadar: Supabase unavailable, staying local — $e');
     }
   } else {
     // Local-only mode serves persisted user data without demo listings.

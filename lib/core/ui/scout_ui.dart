@@ -5,7 +5,7 @@ import '../theme/scout_theme.dart';
 export '../theme/scout_theme.dart';
 
 /// ---------------------------------------------------------------------------
-/// RemoteScout component kit.
+/// JobRadar component kit.
 ///
 /// One visual language everywhere: pure surfaces, hairline boundaries, near
 /// square badges and 8dp cards. Nothing here draws a shadow.
@@ -16,7 +16,7 @@ export '../theme/scout_theme.dart';
 class ScoutAppHeader extends StatelessWidget {
   const ScoutAppHeader({
     super.key,
-    this.title = 'RemoteScout',
+    this.title = 'JobRadar',
     this.subtitle,
     this.onBack,
     this.actions = const <Widget>[],
@@ -111,6 +111,52 @@ class ScoutAppHeader extends StatelessWidget {
       ),
     );
   }
+
+}
+
+void showFeedRefreshFeedback(BuildContext context, List<String> errors) {
+  final messenger = ScaffoldMessenger.of(context);
+  messenger.showSnackBar(
+    SnackBar(
+      content: Text(
+        errors.isEmpty
+            ? 'Feed refreshed.'
+            : 'Feed refreshed with ${errors.length} source issue${errors.length == 1 ? '' : 's'}.',
+      ),
+      action: errors.isEmpty
+          ? null
+          : SnackBarAction(
+              label: 'Details',
+              onPressed: () {
+                showDialog<void>(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text('Job source issues'),
+                    content: SizedBox(
+                      width: double.maxFinite,
+                      child: ListView(
+                        shrinkWrap: true,
+                        children: [
+                          for (final error in errors)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: Text(error),
+                            ),
+                        ],
+                      ),
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('Close'),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+    ),
+  );
 }
 
 /// Monogram avatar — deterministic, offline, no remote images required.
@@ -179,7 +225,8 @@ class ScoutMonogram extends StatelessWidget {
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: fill ?? colors.surfaceContainer,
-        borderRadius: BorderRadius.circular(size >= 32 ? ScoutRadius.md : ScoutRadius.sm),
+        borderRadius:
+            BorderRadius.circular(size >= 32 ? ScoutRadius.md : ScoutRadius.sm),
       ),
       child: Text(
         scoutInitials(label),
@@ -921,6 +968,22 @@ class ScoutSourceBadge extends StatelessWidget {
         return 'via Remotive';
       case 'remoteok':
         return 'via Remote OK';
+      case 'himalayas':
+        return 'via Himalayas';
+      case 'jobicy':
+        return 'via Jobicy';
+      case 'arbeitnow':
+        return 'via Arbeitnow';
+      case 'adzuna':
+        return 'via Adzuna';
+      case 'jooble':
+        return 'via Jooble';
+      case 'themuse':
+        return 'via The Muse';
+      case 'findwork':
+        return 'via Findwork';
+      case 'weworkremotely':
+        return 'via We Work Remotely';
       case 'manual':
         return 'manual entry';
       default:
@@ -953,7 +1016,8 @@ class ScoutSkillChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(right: ScoutSpace.xs + 2, bottom: ScoutSpace.xs + 2),
+      padding: const EdgeInsets.only(
+          right: ScoutSpace.xs + 2, bottom: ScoutSpace.xs + 2),
       child: ScoutBadge(
         label: matched ? label : '?  $label',
         tone: matched ? ScoutBadgeTone.soft : ScoutBadgeTone.tonal,
@@ -1013,7 +1077,8 @@ class ScoutDivider extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: EdgeInsets.symmetric(vertical: verticalPadding),
-      child: Container(height: 1, color: ScoutColors.of(context).outlineVariant),
+      child:
+          Container(height: 1, color: ScoutColors.of(context).outlineVariant),
     );
   }
 }
@@ -1071,13 +1136,16 @@ class ScoutNotice extends StatelessWidget {
     Color foreground;
     switch (tone) {
       case ScoutBadgeTone.soft:
-        background = colors.primaryFixed.withValues(alpha: colors.isDark ? 1 : 0.5);
+        background =
+            colors.primaryFixed.withValues(alpha: colors.isDark ? 1 : 0.5);
         foreground = colors.onPrimaryFixed;
       case ScoutBadgeTone.warning:
-        background = colors.errorContainer.withValues(alpha: colors.isDark ? 1 : 0.45);
+        background =
+            colors.errorContainer.withValues(alpha: colors.isDark ? 1 : 0.45);
         foreground = colors.onErrorContainer;
       case ScoutBadgeTone.info:
-        background = colors.secondaryFixed.withValues(alpha: colors.isDark ? 1 : 0.4);
+        background =
+            colors.secondaryFixed.withValues(alpha: colors.isDark ? 1 : 0.4);
         foreground = colors.onSecondaryFixed;
       case ScoutBadgeTone.solid:
       case ScoutBadgeTone.outline:
@@ -1090,9 +1158,7 @@ class ScoutNotice extends StatelessWidget {
       decoration: BoxDecoration(
         color: background,
         borderRadius: BorderRadius.circular(ScoutRadius.sm),
-        border: colors.isDark
-            ? Border.all(color: colors.outlineVariant)
-            : null,
+        border: colors.isDark ? Border.all(color: colors.outlineVariant) : null,
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,

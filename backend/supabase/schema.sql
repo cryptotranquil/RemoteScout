@@ -31,7 +31,11 @@ create table if not exists public.profiles (
 create table if not exists public.jobs (
   id                  uuid primary key default uuid_generate_v4(),
   external_id         text not null,
-  source              text not null check (source in ('remotive', 'remoteok', 'manual')),
+  source              text not null check (source in (
+                        'remotive', 'remoteok', 'himalayas', 'jobicy',
+                        'arbeitnow', 'adzuna', 'jooble', 'themuse',
+                        'findwork', 'weworkremotely', 'manual'
+                      )),
   title               text not null,
   company             text not null,
   description         text not null default '',

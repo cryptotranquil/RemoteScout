@@ -39,13 +39,13 @@ class WelcomeScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 36),
                       Text(
-                        'RemoteScout',
+                        'JobRadar',
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.displaySmall,
                       ),
                       const SizedBox(height: 14),
                       Text(
-                        'RemoteScout finds jobs worth your time —\n'
+                        'JobRadar finds jobs worth your time —\n'
                         'a short, high-confidence shortlist every day,\n'
                         'not another endless feed.',
                         textAlign: TextAlign.center,

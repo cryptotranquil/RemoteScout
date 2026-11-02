@@ -50,11 +50,8 @@ class SyncedStore implements AppStore {
   Future<void> _pullProfile() async {
     final uid = _uid;
     if (uid == null) return;
-    final row = await _client
-        .from('profiles')
-        .select()
-        .eq('id', uid)
-        .maybeSingle();
+    final row =
+        await _client.from('profiles').select().eq('id', uid).maybeSingle();
     if (row == null) return;
     await local.putProfileRow(profileFromRow(row));
     await local.putPrefsRow(prefsFromRow(row));
@@ -80,29 +77,34 @@ class SyncedStore implements AppStore {
   Future<void> _pullApplications() async {
     final uid = _uid;
     if (uid == null) return;
-    final rows =
-        await _client.from('applications').select().eq('user_id', uid);
+    final rows = await _client.from('applications').select().eq('user_id', uid);
     for (final row in rows) {
       await local.putApplicationRow(applicationFromRow(row));
     }
   }
 
-  /// Invokes a backend worker Edge Function — never throws.
-  Future<void> _invokeWorker(String name) async {
+  /// Invokes a backend worker Edge Function and returns any reported errors.
+  Future<List<String>> _invokeWorker(String name) async {
     try {
-      await _client.functions.invoke(name);
+      final response = await _client.functions.invoke(name);
+      final data = response.data;
+      if (name == 'fetch-jobs' && data is Map && data['errors'] is List) {
+        return (data['errors'] as List).whereType<String>().toList();
+      }
     } catch (e) {
       _logError('invoke:$name', e);
+      return ['$name worker request failed'];
     }
+    return const [];
   }
 
   /// Pushes a match-flag update (is_seen / is_saved / is_rejected).
   Future<void> _pushMatchFlags(JobMatch match) async {
     try {
       await _client.from('job_matches').upsert(
-        matchToRow(match),
-        onConflict: 'user_id,job_id',
-      );
+            matchToRow(match),
+            onConflict: 'user_id,job_id',
+          );
     } catch (e) {
       _logError('pushMatch', e);
     }
@@ -189,7 +191,8 @@ class SyncedStore implements AppStore {
   Future<void> reportExpired(String jobId) async {
     await local.reportExpired(jobId);
     try {
-      await _client.rpc<void>('report_expired_job', params: {'p_job_id': jobId});
+      await _client
+          .rpc<void>('report_expired_job', params: {'p_job_id': jobId});
     } catch (e) {
       _logError('reportExpired', e);
     }
@@ -210,12 +213,13 @@ class SyncedStore implements AppStore {
   Future<void> rescore() => local.rescore();
 
   @override
-  Future<void> refresh() async {
+  Future<List<String>> refresh() async {
     // Ask the worker for a fresh fetch + score, then converge on the result.
-    await _invokeWorker('fetch-jobs');
-    await _invokeWorker('score-jobs');
+    final errors = await _invokeWorker('fetch-jobs');
+    errors.addAll(await _invokeWorker('score-jobs'));
     await _pullQuietly();
     await local.rescore();
+    return errors;
   }
 
   @override
@@ -249,7 +253,10 @@ class SyncedStore implements AppStore {
         final now = local.applicationById(previousApp.id);
         if (now == null) {
           try {
-            await _client.from('applications').delete().eq('id', previousApp.id);
+            await _client
+                .from('applications')
+                .delete()
+                .eq('id', previousApp.id);
           } catch (e) {
             _logError('deleteApplication', e);
           }

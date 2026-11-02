@@ -242,12 +242,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               sources: sources,
                               live: Env.isLiveConfigured,
                               onRefresh: () async {
-                                await refreshScout(ref);
+                                final errors = await refreshScout(ref);
                                 if (!context.mounted) return;
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                      content: Text('Feed refreshed.')),
-                                );
+                                showFeedRefreshFeedback(context, errors);
                               },
                             ),
                             const ScoutDivider(verticalPadding: ScoutSpace.md),
@@ -281,7 +278,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       ),
                       const SizedBox(height: ScoutSpace.sm),
                       Text(
-                        'RemoteScout never auto-applies. Every submission is '
+                        'JobRadar never auto-applies. Every submission is '
                         'your click, on the original listing.',
                         textAlign: TextAlign.center,
                         style: text.labelSmall,
@@ -301,6 +298,22 @@ String _sourceName(String source) {
       return 'Remotive';
     case 'remoteok':
       return 'Remote OK';
+    case 'himalayas':
+      return 'Himalayas';
+    case 'jobicy':
+      return 'Jobicy';
+    case 'arbeitnow':
+      return 'Arbeitnow';
+    case 'adzuna':
+      return 'Adzuna';
+    case 'jooble':
+      return 'Jooble';
+    case 'themuse':
+      return 'The Muse';
+    case 'findwork':
+      return 'Findwork';
+    case 'weworkremotely':
+      return 'We Work Remotely';
     case 'manual':
       return 'Manual entries';
     default:

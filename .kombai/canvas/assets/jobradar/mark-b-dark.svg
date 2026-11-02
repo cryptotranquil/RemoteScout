@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 240 240" role="img" aria-label="JobRadar signal mark, dark tile">
+  <rect width="240" height="240" rx="53" fill="#141B2B"/>
+  <path d="M18 162H222" stroke="#A0F0F0" stroke-width="20" fill="none"/>
+  <path d="M118 162H174L146 68Z" fill="#A0F0F0"/>
+</svg>

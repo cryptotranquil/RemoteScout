@@ -49,8 +49,31 @@ GoRouter buildRouter(
         path: '/notifications-setup',
         builder: (_, __) => const NotificationPrefsScreen(initialSetup: true),
       ),
-      StatefulShellRoute.indexedStack(
+      StatefulShellRoute(
         builder: (context, state, shell) => AppShell(shell: shell),
+        navigatorContainerBuilder: (context, navigationShell, children) {
+          return Stack(
+            fit: StackFit.expand,
+            children: [
+              for (var index = 0; index < children.length; index++)
+                Positioned.fill(
+                  key: ValueKey(index),
+                  child: AnimatedOpacity(
+                    opacity: index == navigationShell.currentIndex ? 1 : 0,
+                    duration: const Duration(milliseconds: 180),
+                    curve: Curves.easeInOut,
+                    child: IgnorePointer(
+                      ignoring: index != navigationShell.currentIndex,
+                      child: TickerMode(
+                        enabled: index == navigationShell.currentIndex,
+                        child: children[index],
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          );
+        },
         branches: [
           StatefulShellBranch(routes: [
             GoRoute(

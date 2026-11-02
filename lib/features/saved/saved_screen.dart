@@ -338,13 +338,9 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
                                 dense: true,
                                 expand: false,
                                 onPressed: () async {
-                                  await refreshScout(ref);
+                                  final errors = await refreshScout(ref);
                                   if (!context.mounted) return;
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Saved jobs re-scored.'),
-                                    ),
-                                  );
+                                  showFeedRefreshFeedback(context, errors);
                                 },
                               ),
                             ],

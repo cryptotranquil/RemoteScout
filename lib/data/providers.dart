@@ -12,10 +12,11 @@ final storeProvider = Provider<AppStore>((ref) => appStore);
 /// Timestamp of the last feed refresh — drives the "Sync: …" app-bar stamp.
 final lastSyncProvider = StateProvider<DateTime?>((ref) => null);
 
-/// Refreshes the store and stamps the sync time.
-Future<void> refreshScout(WidgetRef ref) async {
-  await ref.read(storeProvider).refresh();
+/// Refreshes the store, returns backend issues, and stamps the sync time.
+Future<List<String>> refreshScout(WidgetRef ref) async {
+  final errors = await ref.read(storeProvider).refresh();
   ref.read(lastSyncProvider.notifier).state = DateTime.now();
+  return errors;
 }
 
 final profileProvider = StreamProvider<Profile?>(
@@ -65,7 +66,11 @@ final todayProvider = Provider<AsyncValue<List<JobCardModel>>>((ref) {
     if (match.isSeen || match.isRejected) continue;
     if (match.matchScore < settings.minMatchScore) continue;
     final job = byId[match.jobId];
-    if (job == null || job.isExpiredReported) continue;
+    if (job == null ||
+        job.isExpiredReported ||
+        (job.expiresAt != null && !job.expiresAt!.isAfter(DateTime.now()))) {
+      continue;
+    }
     picks.add(JobCardModel(job: job, match: match));
   }
   picks.sort((a, b) => b.match.matchScore.compareTo(a.match.matchScore));
@@ -84,7 +89,10 @@ final savedProvider = Provider<AsyncValue<List<JobCardModel>>>((ref) {
   for (final match in matchList) {
     if (!match.isSaved || match.isRejected) continue;
     final job = byId[match.jobId];
-    if (job == null) continue;
+    if (job == null ||
+        (job.expiresAt != null && !job.expiresAt!.isAfter(DateTime.now()))) {
+      continue;
+    }
     saved.add(JobCardModel(job: job, match: match));
   }
   saved.sort((a, b) => b.match.matchScore.compareTo(a.match.matchScore));
@@ -102,7 +110,8 @@ class ApplicationCardModel {
   String get company => job?.company ?? '—';
 }
 
-final applicationCardsProvider = Provider<AsyncValue<List<ApplicationCardModel>>>((ref) {
+final applicationCardsProvider =
+    Provider<AsyncValue<List<ApplicationCardModel>>>((ref) {
   final apps = ref.watch(applicationsProvider);
   final jobs = ref.watch(jobsProvider);
   final appList = apps.valueOrNull;

@@ -62,7 +62,7 @@ abstract class AppStore {
 
   /// Refresh pipeline: local re-score; live builds also re-pull from the
   /// backend worker (fetch-jobs / score-jobs).
-  Future<void> refresh();
+  Future<List<String>> refresh();
 
   Future<void> markSeen(String matchId);
 

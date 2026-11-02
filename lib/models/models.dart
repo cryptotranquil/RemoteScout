@@ -156,7 +156,7 @@ class Job {
 
   final String id;
   final String externalId;
-  final String source; // 'remotive' | 'remoteok' | 'manual'
+  final String source;
   final String title;
   final String company;
   final String description;
