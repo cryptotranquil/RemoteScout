@@ -1,5 +1,25 @@
 import '../models/models.dart';
 
+class FeedRefreshResult {
+  const FeedRefreshResult({
+    required this.isLive,
+    this.fetched = 0,
+    this.inserted = 0,
+    this.duplicatesDiscarded = 0,
+    this.storedJobs = 0,
+    this.visibleJobs = 0,
+    this.errors = const [],
+  });
+
+  final bool isLive;
+  final int fetched;
+  final int inserted;
+  final int duplicatesDiscarded;
+  final int storedJobs;
+  final int visibleJobs;
+  final List<String> errors;
+}
+
 /// The app's storage surface (Phase 2 local / Phase 3 Supabase both conform).
 ///
 /// Screens and providers depend only on this interface, so wiring the live
@@ -62,7 +82,7 @@ abstract class AppStore {
 
   /// Refresh pipeline: local re-score; live builds also re-pull from the
   /// backend worker (fetch-jobs / score-jobs).
-  Future<List<String>> refresh();
+  Future<FeedRefreshResult> refresh();
 
   Future<void> markSeen(String matchId);
 

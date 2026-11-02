@@ -113,15 +113,34 @@ class ScoutAppHeader extends StatelessWidget {
   }
 }
 
-void showFeedRefreshFeedback(BuildContext context, List<String> errors) {
+void showFeedRefreshFeedback(
+  BuildContext context, {
+  required bool isLive,
+  required int fetched,
+  required int inserted,
+  required int duplicatesDiscarded,
+  required int storedJobs,
+  required int visibleJobs,
+  required List<String> errors,
+}) {
   final messenger = ScaffoldMessenger.of(context);
+  final message = !isLive
+      ? 'Job sources were not contacted.'
+      : storedJobs > visibleJobs
+          ? 'Supabase has $storedJobs jobs, but this app can read only '
+              '$visibleJobs. Check the sign-in and read policy.'
+          : errors.isNotEmpty
+              ? 'Refresh found $fetched eligible jobs and added '
+                  '$inserted, with ${errors.length} issue'
+                  '${errors.length == 1 ? '' : 's'}.'
+              : fetched == 0
+                  ? 'Supabase returned 0 eligible jobs.'
+                  : inserted == 0
+                      ? 'Checked $fetched eligible jobs; none were new.'
+                      : 'Added $inserted new jobs from $fetched eligible listings.';
   messenger.showSnackBar(
     SnackBar(
-      content: Text(
-        errors.isEmpty
-            ? 'Feed refreshed.'
-            : 'Feed refreshed with ${errors.length} source issue${errors.length == 1 ? '' : 's'}.',
-      ),
+      content: Text(message),
       action: errors.isEmpty
           ? null
           : SnackBarAction(
@@ -130,12 +149,22 @@ void showFeedRefreshFeedback(BuildContext context, List<String> errors) {
                 showDialog<void>(
                   context: context,
                   builder: (context) => AlertDialog(
-                    title: const Text('Job source issues'),
+                    title: const Text('Refresh details'),
                     content: SizedBox(
                       width: double.maxFinite,
                       child: ListView(
                         shrinkWrap: true,
                         children: [
+                          if (isLive)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: Text(
+                                'Fetched $fetched; inserted $inserted; '
+                                'discarded as duplicates $duplicatesDiscarded; '
+                                'stored in Supabase $storedJobs; '
+                                'visible to app $visibleJobs.',
+                              ),
+                            ),
                           for (final error in errors)
                             Padding(
                               padding: const EdgeInsets.only(bottom: 8),

@@ -37,6 +37,9 @@ class LocalStore implements AppStore {
   final Box<dynamic> _applications;
   final DedupIndex _dedup = DedupIndex();
 
+  String refreshUnavailableReason =
+      'This build is using local storage; job sources were not contacted.';
+
   /// Opens (and migrates if needed) all boxes.
   static Future<LocalStore> open() async {
     return LocalStore._(
@@ -230,9 +233,12 @@ class LocalStore implements AppStore {
   }
 
   @override
-  Future<List<String>> refresh() async {
+  Future<FeedRefreshResult> refresh() async {
     await rescore();
-    return const [];
+    return FeedRefreshResult(
+      isLive: false,
+      errors: [refreshUnavailableReason],
+    );
   }
 
   @override

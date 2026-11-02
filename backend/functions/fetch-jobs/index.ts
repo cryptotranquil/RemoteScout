@@ -514,6 +514,7 @@ Deno.serve(async (req) => {
       fetched: candidates.length,
       inserted,
       duplicatesDiscarded: candidates.length - fresh.length,
+      storedJobs: existing?.length ?? 0,
       errors,
     });
   } catch (e) {

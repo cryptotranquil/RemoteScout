@@ -80,6 +80,9 @@ The Flutter app talks to this backend through `lib/data/supabase/synced_store.da
   `report_expired_job` RPC.
 - "Force refresh from sources" (Profile tab) and pull-to-refresh (Discover)
   invoke the `fetch-jobs` + `score-jobs` functions, then pull results.
+  Refresh feedback reports eligible/inserted counts and displays worker or
+  sync errors; local-only builds explicitly say when they did not contact
+  Supabase.
 
 Enable **anonymous sign-ins** in Dashboard → Authentication → Providers for
 the single-user MVP (or swap `ensureSignedIn()` for your preferred method).

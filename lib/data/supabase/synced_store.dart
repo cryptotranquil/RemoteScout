@@ -83,19 +83,49 @@ class SyncedStore implements AppStore {
     }
   }
 
-  /// Invokes a backend worker Edge Function and returns any reported errors.
-  Future<List<String>> _invokeWorker(String name) async {
+  /// Invokes a backend worker and preserves its response for refresh reports.
+  Future<_WorkerResult> _invokeWorker(String name) async {
     try {
       final response = await _client.functions.invoke(name);
       final data = response.data;
-      if (name == 'fetch-jobs' && data is Map && data['errors'] is List) {
-        return (data['errors'] as List).whereType<String>().toList();
-      }
+      final errors = data is Map && data['errors'] is List
+          ? (data['errors'] as List).whereType<String>().toList()
+          : <String>[];
+      return _WorkerResult(data: data, errors: errors);
+    } on FunctionException catch (e) {
+      _logError('invoke:$name', e);
+      final details = e.details;
+      final detailText = details is Map && details['error'] != null
+          ? details['error'].toString()
+          : details?.toString();
+      final message = e.status == 0
+          ? '$name could not connect to Supabase'
+          : '$name returned HTTP ${e.status}'
+              '${e.reasonPhrase == null ? '' : ' ${e.reasonPhrase}'}';
+      return _WorkerResult(errors: [
+        '$message${detailText == null ? '.' : ': $detailText'}',
+      ]);
     } catch (e) {
       _logError('invoke:$name', e);
-      return ['$name worker request failed'];
+      return _WorkerResult(errors: ['$name request failed: $e']);
     }
-    return const [];
+  }
+
+  Future<List<String>> _pullForRefresh() async {
+    try {
+      await initialSync();
+      return const [];
+    } catch (e) {
+      _logError('refreshPull', e);
+      return ['Could not sync data from Supabase: $e'];
+    }
+  }
+
+  int _readCount(dynamic data, String key) {
+    if (data is Map && data[key] is num) {
+      return (data[key] as num).toInt();
+    }
+    return 0;
   }
 
   /// Pushes a match-flag update (is_seen / is_saved / is_rejected).
@@ -145,7 +175,7 @@ class SyncedStore implements AppStore {
     try {
       await _client.from('profiles').upsert(profileToRow(toStore, local.prefs));
       // Server-side re-score against the new profile (fire and forget).
-      unawaited(_invokeWorker('score-jobs'));
+      unawaited(_invokeWorker('score-jobs').then<void>((_) {}));
       unawaited(_pullQuietly());
     } catch (e) {
       _logError('saveProfile', e);
@@ -213,13 +243,30 @@ class SyncedStore implements AppStore {
   Future<void> rescore() => local.rescore();
 
   @override
-  Future<List<String>> refresh() async {
-    // Ask the worker for a fresh fetch + score, then converge on the result.
-    final errors = await _invokeWorker('fetch-jobs');
-    errors.addAll(await _invokeWorker('score-jobs'));
-    await _pullQuietly();
+  Future<FeedRefreshResult> refresh() async {
+    try {
+      await ensureSignedIn(_client);
+    } catch (e) {
+      return FeedRefreshResult(
+        isLive: true,
+        errors: ['No authenticated Supabase session: $e'],
+      );
+    }
+
+    final fetched = await _invokeWorker('fetch-jobs');
+    final scored = await _invokeWorker('score-jobs');
+    final errors = [...fetched.errors, ...scored.errors];
+    errors.addAll(await _pullForRefresh());
     await local.rescore();
-    return errors;
+    return FeedRefreshResult(
+      isLive: true,
+      fetched: _readCount(fetched.data, 'fetched'),
+      inserted: _readCount(fetched.data, 'inserted'),
+      duplicatesDiscarded: _readCount(fetched.data, 'duplicatesDiscarded'),
+      storedJobs: _readCount(fetched.data, 'storedJobs'),
+      visibleJobs: local.allJobs.length,
+      errors: errors,
+    );
   }
 
   @override
@@ -372,7 +419,20 @@ Future<void> ensureSignedIn(SupabaseClient client) async {
   if (client.auth.currentSession != null) return;
   try {
     await client.auth.signInAnonymously();
-  } catch (_) {
-    // Anonymous sign-in may be disabled — degrade to local-only writes.
+  } catch (e) {
+    throw StateError('Anonymous Supabase sign-in failed: $e');
   }
+  if (client.auth.currentSession == null) {
+    throw StateError(
+      'Supabase did not create a session. Enable anonymous sign-ins '
+      'in the Supabase Auth settings.',
+    );
+  }
+}
+
+class _WorkerResult {
+  const _WorkerResult({this.data, this.errors = const []});
+
+  final dynamic data;
+  final List<String> errors;
 }

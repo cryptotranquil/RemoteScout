@@ -42,9 +42,18 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
   Future<void> _refresh() async {
     setState(() => _refreshing = true);
     try {
-      final errors = await refreshScout(ref);
-      if (mounted && errors.isNotEmpty) {
-        showFeedRefreshFeedback(context, errors);
+      final result = await refreshScout(ref);
+      if (mounted) {
+        showFeedRefreshFeedback(
+          context,
+          isLive: result.isLive,
+          fetched: result.fetched,
+          inserted: result.inserted,
+          duplicatesDiscarded: result.duplicatesDiscarded,
+          storedJobs: result.storedJobs,
+          visibleJobs: result.visibleJobs,
+          errors: result.errors,
+        );
       }
     } finally {
       if (mounted) setState(() => _refreshing = false);
@@ -305,7 +314,7 @@ class _SyncPanel extends StatelessWidget {
                     Text('Sync summary', style: text.titleSmall),
                     const SizedBox(height: 2),
                     Text(
-                      '$crawled crawled across ${sources.length} '
+                      '$crawled jobs stored from ${sources.length} '
                       '${sources.length == 1 ? 'source' : 'sources'}, '
                       '$metThreshold met your threshold (≥$threshold%). '
                       'Next digest at ${formatTimeOfDay(digestTime)}.',

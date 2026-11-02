@@ -242,9 +242,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               sources: sources,
                               live: Env.isLiveConfigured,
                               onRefresh: () async {
-                                final errors = await refreshScout(ref);
+                                final result = await refreshScout(ref);
                                 if (!context.mounted) return;
-                                showFeedRefreshFeedback(context, errors);
+                                showFeedRefreshFeedback(
+                                  context,
+                                  isLive: result.isLive,
+                                  fetched: result.fetched,
+                                  inserted: result.inserted,
+                                  duplicatesDiscarded:
+                                      result.duplicatesDiscarded,
+                                  storedJobs: result.storedJobs,
+                                  visibleJobs: result.visibleJobs,
+                                  errors: result.errors,
+                                );
                               },
                             ),
                             const ScoutDivider(verticalPadding: ScoutSpace.md),

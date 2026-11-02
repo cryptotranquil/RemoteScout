@@ -12,11 +12,11 @@ final storeProvider = Provider<AppStore>((ref) => appStore);
 /// Timestamp of the last feed refresh — drives the "Sync: …" app-bar stamp.
 final lastSyncProvider = StateProvider<DateTime?>((ref) => null);
 
-/// Refreshes the store, returns backend issues, and stamps the sync time.
-Future<List<String>> refreshScout(WidgetRef ref) async {
-  final errors = await ref.read(storeProvider).refresh();
+/// Refreshes the store and stamps the sync time.
+Future<FeedRefreshResult> refreshScout(WidgetRef ref) async {
+  final result = await ref.read(storeProvider).refresh();
   ref.read(lastSyncProvider.notifier).state = DateTime.now();
-  return errors;
+  return result;
 }
 
 final profileProvider = StreamProvider<Profile?>(
