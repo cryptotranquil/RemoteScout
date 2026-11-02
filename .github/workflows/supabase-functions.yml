@@ -1,0 +1,44 @@
+name: Deploy Supabase job fetcher
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - backend/functions/fetch-jobs/**
+      - backend/functions/_shared/**
+      - backend/supabase/config.toml
+      - .github/workflows/supabase-functions.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-fetch-jobs:
+    name: Deploy fetch-jobs Edge Function
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Validate deployment credentials
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          if [ -z "$SUPABASE_ACCESS_TOKEN" ]; then
+            echo "Configure the SUPABASE_ACCESS_TOKEN GitHub Actions secret to deploy Edge Functions." >&2
+            exit 1
+          fi
+
+      - name: Deploy fetch-jobs
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: npx --yes supabase@latest functions deploy fetch-jobs --project-ref ynecbuiuopisddgnatjn --workdir backend --use-api

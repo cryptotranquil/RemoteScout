@@ -54,9 +54,8 @@ class _ChipsFieldState extends State<ChipsField> {
   @override
   Widget build(BuildContext context) {
     final palette = ScoutColors.of(context);
-    final extras = widget.suggestions
-        .where((s) => !widget.selected.contains(s))
-        .toList();
+    final extras =
+        widget.suggestions.where((s) => !widget.selected.contains(s)).toList();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -75,19 +74,25 @@ class _ChipsFieldState extends State<ChipsField> {
                     constraints: const BoxConstraints(minHeight: 40),
                     decoration: BoxDecoration(
                       color: palette.surfaceContainer,
-                      borderRadius:
-                          BorderRadius.circular(ScoutRadius.sm),
+                      borderRadius: BorderRadius.circular(ScoutRadius.sm),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(value,
+                        Flexible(
+                          child: Text(
+                            value,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: Theme.of(context)
                                 .textTheme
                                 .labelMedium!
                                 .copyWith(
-                                    color: palette.primary,
-                                    fontWeight: FontWeight.w700)),
+                                  color: palette.primary,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                          ),
+                        ),
                         const SizedBox(width: 6),
                         Icon(Icons.close, size: 14, color: palette.muted),
                       ],
@@ -303,7 +308,8 @@ class ProfileFormFields extends StatelessWidget {
         const ScoutSectionLabel('CV link (optional)'),
         ScoutInput(
           controller: cvController,
-          hint: 'Link to your CV (file upload arrives with Supabase in Phase 3)',
+          hint:
+              'Link to your CV (file upload arrives with Supabase in Phase 3)',
           keyboardType: TextInputType.url,
         ),
       ],

@@ -41,6 +41,11 @@ backend/
    `backend/functions/`; all require JWT verification.
    The handlers answer browser `OPTIONS` preflights without running worker
    jobs, and include CORS headers on both success and error responses.
+   The GitHub Actions workflow deploys `fetch-jobs` when its source changes on
+   `main`. Configure the repository Actions secret `SUPABASE_ACCESS_TOKEN`
+   with a Supabase personal access token, or deploy manually with the command
+   above. The Android release workflow only builds the app; it does not deploy
+   Edge Functions.
 
 4. Configure backend secrets. Supabase supplies `SUPABASE_URL` and
    `SUPABASE_SERVICE_ROLE_KEY` to Edge Functions. For push, create a Firebase

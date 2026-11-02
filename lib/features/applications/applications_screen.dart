@@ -80,16 +80,16 @@ class _ApplicationsScreenState extends ConsumerState<ApplicationsScreen> {
                     ScoutSpace.xl,
                   ),
                   children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
+                    Wrap(
+                      alignment: WrapAlignment.spaceBetween,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      runSpacing: ScoutSpace.xs,
+                      spacing: ScoutSpace.sm,
                       children: [
                         Text('Tracker', style: text.titleLarge),
-                        const SizedBox(width: ScoutSpace.xs + 2),
-                        Expanded(
-                          child: Text(
-                            '${items.length} active tracks',
-                            style: text.labelSmall,
-                          ),
+                        Text(
+                          '${items.length} active tracks',
+                          style: text.labelSmall,
                         ),
                         ScoutButton(
                           key: const ValueKey('add-manually'),

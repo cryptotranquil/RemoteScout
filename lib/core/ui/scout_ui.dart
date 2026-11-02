@@ -111,7 +111,6 @@ class ScoutAppHeader extends StatelessWidget {
       ),
     );
   }
-
 }
 
 void showFeedRefreshFeedback(BuildContext context, List<String> errors) {
@@ -648,8 +647,11 @@ class ScoutFilterPill extends StatelessWidget {
       child: GestureDetector(
         onTap: onTap,
         child: Container(
-          height: compact ? 32 : 34,
-          padding: const EdgeInsets.symmetric(horizontal: ScoutSpace.md),
+          constraints: BoxConstraints(minHeight: compact ? 32 : 34),
+          padding: const EdgeInsets.symmetric(
+            horizontal: ScoutSpace.md,
+            vertical: ScoutSpace.xs,
+          ),
           decoration: BoxDecoration(
             color: selected ? colors.brandFill : colors.card,
             borderRadius: BorderRadius.circular(ScoutRadius.md),
@@ -672,11 +674,15 @@ class ScoutFilterPill extends StatelessWidget {
                 ),
                 const SizedBox(width: 5),
               ],
-              Text(
-                label,
-                style: text.labelMedium!.copyWith(
-                  color: selected ? colors.onBrand : colors.onSurface,
-                  fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: text.labelMedium!.copyWith(
+                    color: selected ? colors.onBrand : colors.onSurface,
+                    fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+                  ),
                 ),
               ),
             ],
@@ -736,8 +742,11 @@ class ScoutBadge extends StatelessWidget {
     }
 
     return Container(
-      height: height,
-      padding: const EdgeInsets.symmetric(horizontal: ScoutSpace.sm),
+      constraints: BoxConstraints(minHeight: height),
+      padding: const EdgeInsets.symmetric(
+        horizontal: ScoutSpace.sm,
+        vertical: ScoutSpace.xs,
+      ),
       decoration: BoxDecoration(
         color: background,
         borderRadius: BorderRadius.circular(ScoutRadius.badge),
@@ -750,9 +759,13 @@ class ScoutBadge extends StatelessWidget {
             Icon(icon, size: 12, color: foreground),
             const SizedBox(width: 3),
           ],
-          Text(
-            label,
-            style: text.labelMedium!.copyWith(color: foreground),
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: text.labelMedium!.copyWith(color: foreground),
+            ),
           ),
         ],
       ),

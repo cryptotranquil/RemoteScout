@@ -25,9 +25,7 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
   _SavedFilter _filter = _SavedFilter.all;
 
   bool _matchesFilter(JobCardModel model) {
-    final application = ref
-        .read(storeProvider)
-        .applicationForJob(model.job.id);
+    final application = ref.read(storeProvider).applicationForJob(model.job.id);
     switch (_filter) {
       case _SavedFilter.all:
         return true;
@@ -135,11 +133,12 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
                       runSpacing: ScoutSpace.xs,
                       spacing: ScoutSpace.sm,
                       children: [
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
+                        Wrap(
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          spacing: ScoutSpace.sm,
+                          runSpacing: ScoutSpace.xs,
                           children: [
                             Text('Saved jobs', style: text.titleLarge),
-                            const SizedBox(width: ScoutSpace.sm),
                             Container(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: ScoutSpace.sm,
@@ -183,8 +182,7 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
                           : IconButton(
                               icon: const Icon(Icons.close, size: 16),
                               color: colors.muted,
-                              onPressed: () =>
-                                  setState(() => _query = ''),
+                              onPressed: () => setState(() => _query = ''),
                             ),
                     ),
                     const SizedBox(height: ScoutSpace.sm),
@@ -283,11 +281,11 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
                             final application =
                                 store.applicationForJob(model.job.id);
                             if (context.mounted && application != null) {
-                              await context.push('/application/${application.id}');
+                              await context
+                                  .push('/application/${application.id}');
                             }
                           },
-                          onRemove: () =>
-                              store.rejectMatch(model.match.id),
+                          onRemove: () => store.rejectMatch(model.match.id),
                           onOpen: () => context.push('/job/${model.job.id}'),
                           onReportExpired: () =>
                               confirmReportExpired(context, store, model.job),
@@ -380,9 +378,7 @@ class _SavedJobCard extends ConsumerWidget {
     final text = Theme.of(context).textTheme;
     final job = model.job;
     final match = model.match;
-    final application = ref
-        .watch(storeProvider)
-        .applicationForJob(job.id);
+    final application = ref.watch(storeProvider).applicationForJob(job.id);
     final daysLeft = daysUntilExpiry(job);
 
     return GestureDetector(

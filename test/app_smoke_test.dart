@@ -6,11 +6,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:remotescout/app.dart';
+import 'package:remotescout/core/theme/app_theme.dart';
 import 'package:remotescout/data/app_store.dart';
 import 'package:remotescout/data/local_store.dart';
 import 'package:remotescout/data/providers.dart';
 import 'package:remotescout/features/onboarding/welcome_screen.dart';
 import 'package:remotescout/models/models.dart';
+import 'package:remotescout/router.dart';
 import 'fixtures/mock_data.dart';
 
 /// End-to-end smoke: real store + mock jobs + real router/theme/providers.
@@ -139,6 +141,54 @@ void main() {
     expect(find.text('Saved jobs'), findsOneWidget);
     expect(find.text('Batch actions'), findsOneWidget);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('main screens fit a Galaxy S20 viewport with larger text',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(360, 800));
+    tester.binding.platformDispatcher.textScaleFactorTestValue = 1.2;
+    addTearDown(() {
+      tester.binding.platformDispatcher.clearTextScaleFactorTestValue();
+      tester.binding.setSurfaceSize(null);
+    });
+
+    await tester.runAsync(() => appStore.setOnboarded());
+    final refresh = AppRouterRefresh(appStore);
+    final router = buildRouter(refresh, initialLocation: '/discover');
+    addTearDown(() {
+      router.dispose();
+      refresh.dispose();
+    });
+
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp.router(
+          theme: buildAppTheme(Brightness.light),
+          darkTheme: buildAppTheme(Brightness.dark),
+          routerConfig: router,
+        ),
+      ),
+    );
+
+    for (final route in [
+      '/discover',
+      '/saved',
+      '/applications',
+      '/application/new',
+      '/profile',
+      '/profile/edit',
+      '/stats',
+      '/job/mock-01',
+      '/onboarding',
+      '/notifications-setup',
+    ]) {
+      router.go(route);
+      for (var i = 0; i < 6; i++) {
+        await tester.pump(const Duration(milliseconds: 120));
+      }
+      final layoutError = tester.takeException();
+      expect(layoutError, isNull, reason: 'Route $route');
+    }
   });
 
   testWidgets('job details render HTML descriptions', (tester) async {

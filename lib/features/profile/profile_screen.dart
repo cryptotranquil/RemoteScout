@@ -525,11 +525,12 @@ class _SkillsSection extends StatelessWidget {
                   color: colors.surfaceLow,
                   borderRadius: BorderRadius.circular(ScoutRadius.md),
                 ),
-                child: Row(
+                child: Wrap(
+                  alignment: WrapAlignment.spaceBetween,
+                  spacing: ScoutSpace.sm,
+                  runSpacing: ScoutSpace.xs,
                   children: [
-                    Expanded(
-                      child: Text(skill, style: text.labelLarge),
-                    ),
+                    Text(skill, style: text.labelLarge),
                     Text('Matched on every listing', style: text.labelSmall),
                   ],
                 ),

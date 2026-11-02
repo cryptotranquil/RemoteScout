@@ -153,7 +153,10 @@ class _RoleCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          Wrap(
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: ScoutSpace.xs + 2,
+            runSpacing: ScoutSpace.xs,
             children: [
               ScoutBadge(
                 label: job.isExpiredReported
@@ -164,16 +167,13 @@ class _RoleCard extends StatelessWidget {
                     : ScoutBadgeTone.tonal,
                 icon: job.isExpiredReported ? Icons.flag_outlined : null,
               ),
-              const SizedBox(width: ScoutSpace.xs + 2),
-              Expanded(
-                child: Text(
-                  'Discovered ${formatShortAgo(job.collectedAt)}',
-                  style: text.labelSmall,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
               ScoutSourceBadge(source: job.source),
+              Text(
+                'Discovered ${formatShortAgo(job.collectedAt)}',
+                style: text.labelSmall,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             ],
           ),
           const SizedBox(height: ScoutSpace.sm),
@@ -630,9 +630,13 @@ class _ActionBar extends StatelessWidget {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(
-                        'View original listing',
-                        style: Theme.of(context).textTheme.labelMedium,
+                      Flexible(
+                        child: Text(
+                          'View original listing',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.labelMedium,
+                        ),
                       ),
                       const SizedBox(width: 4),
                       Icon(Icons.north_east, size: 14, color: colors.muted),
