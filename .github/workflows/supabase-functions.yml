@@ -41,4 +41,4 @@ jobs:
       - name: Deploy fetch-jobs
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-        run: npx --yes supabase@latest functions deploy fetch-jobs --project-ref ynecbuiuopisddgnatjn --workdir backend --use-api
+        run: npx --yes supabase@latest functions deploy fetch-jobs --project-ref ynecbuiuopisddgnatjn --workdir backend --use-api --yes
